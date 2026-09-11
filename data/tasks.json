@@ -1,0 +1,52 @@
+[
+  {
+    "id": "task-1",
+    "title": "Define Project Scope and Milestones",
+    "status": "In Progress",
+    "priority": "High",
+    "description": "Align with cross-functional leads on key Q4 delivery goals, scope boundaries, and review cadence. Ensure risk mitigation plans are documented.",
+    "assignee": "Alex Rivera",
+    "dueDate": "2026-09-20",
+    "updatedAt": "2026-09-11T12:00:00Z"
+  },
+  {
+    "id": "task-2",
+    "title": "Setup CI/CD and GitHub Pages Deployment",
+    "status": "Done",
+    "priority": "Urgent",
+    "description": "Configure GitHub repository settings, publish gh-pages branch or root docs, and verify team access permissions.",
+    "assignee": "Sarah Chen",
+    "dueDate": "2026-09-15",
+    "updatedAt": "2026-09-11T10:30:00Z"
+  },
+  {
+    "id": "task-3",
+    "title": "Customer Feedback & UX Review",
+    "status": "Not Started",
+    "priority": "Medium",
+    "description": "Conduct 5 interviews with key stakeholders to evaluate ease of use and identify edge cases in current workflow.",
+    "assignee": "Marcus Johnson",
+    "dueDate": "2026-09-28",
+    "updatedAt": "2026-09-11T09:15:00Z"
+  },
+  {
+    "id": "task-4",
+    "title": "Prepare Performance Metrics Dashboard",
+    "status": "In Review",
+    "priority": "High",
+    "description": "Compile weekly sales velocity and team benchmark metrics into the executive summary tracker.",
+    "assignee": "Aseak",
+    "dueDate": "2026-09-22",
+    "updatedAt": "2026-09-11T14:45:00Z"
+  },
+  {
+    "id": "task-5",
+    "title": "Documentation & Onboarding Guide",
+    "status": "Not Started",
+    "priority": "Low",
+    "description": "Draft standard operating procedure for new team members joining the project tracker workflow.",
+    "assignee": "Elena Rostova",
+    "dueDate": "2026-10-05",
+    "updatedAt": "2026-09-11T08:00:00Z"
+  }
+]
