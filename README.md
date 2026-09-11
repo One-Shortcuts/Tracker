@@ -1,6 +1,6 @@
-# Project Tracker (Setup 2026)
+# NPI Setup Checklist (Setup 2026)
 
-A sleek, responsive, and collaborative Project Tracker built in pure HTML, CSS, and JavaScript. Designed to be hosted for free on **GitHub Pages**, allowing team members to view, add, and edit tasks and descriptions in real time.
+A sleek, responsive NPI Setup Checklist built in pure HTML, CSS, and JavaScript. It saves every task change to the browser immediately and can optionally sync changes to GitHub for team collaboration.
 
 ---
 
@@ -30,7 +30,7 @@ git init
 git add .
 
 # 3. Commit files
-git commit -m "Initial commit: Project tracker with GitHub sync"
+git commit -m "Initial commit: NPI setup checklist"
 
 # 4. Link to your GitHub repository
 git branch -M main
@@ -59,8 +59,8 @@ git push -u origin main
 The easiest and cleanest way to collaborate is with a **GitHub Gist**:
 
 ### Step 1: Create & Connect Your Gist
-1. Open your live Project Tracker: `https://one-shortcuts.github.io/Tracker/`
-2. Click **Sync** in the top right header.
+1. Open your live NPI Setup Checklist: `https://one-shortcuts.github.io/Tracker/`
+2. Click **Sync Settings** in the top right header.
 3. In the **GitHub Gist** tab:
    - Enter your [GitHub Personal Access Token](https://github.com/settings/tokens?type=beta) with the **`gist`** scope.
    - Click **`+ Create New Gist From Current Tasks`**.
@@ -89,6 +89,6 @@ If you prefer committing directly to the repo's `data/tasks.json`:
 - **Table View**: Compact, high-density data grid with quick-status toggles and clickable description editor.
 - **Kanban Board View**: Visual drag-free cards categorized by progress status.
 - **Search & Filters**: Filter by status, priority, assignee, or keyword search across tasks and descriptions.
-- **CSV Export**: 1-click download of the complete project tracker table into an Excel/Sheets-compatible CSV file.
+- **CSV Export**: 1-click download of the complete NPI checklist into an Excel/Sheets-compatible CSV file.
 - **Light & Dark Theme**: Automatically adapts or toggles with persistent preference.
 - **Zero External Dependencies**: Pure vanilla HTML5, CSS3, and JavaScript — loads instantly on mobile and desktop.

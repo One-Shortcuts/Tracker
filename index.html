@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project Tracker | Setup 2026</title>
+  <title>NPI Setup Checklist | Setup 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -877,8 +877,8 @@
       font-size: 0.8rem;
     }
 
-    /* Sync Indicator in Header */
-    .sync-status-btn {
+    /* Sync Settings Button */
+    .sync-settings-btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -888,28 +888,6 @@
       border: 1px solid var(--border-color);
       background: var(--bg-surface);
       cursor: pointer;
-    }
-
-    .sync-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: var(--text-light);
-    }
-
-    .sync-dot.connected {
-      background-color: var(--success);
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-    }
-
-    .sync-dot.syncing {
-      background-color: var(--warning);
-      animation: pulse 1s infinite alternate;
-    }
-
-    @keyframes pulse {
-      from { opacity: 0.3; }
-      to { opacity: 1; }
     }
 
     /* Empty state */
@@ -964,16 +942,21 @@
           </svg>
         </div>
         <div class="brand-title">
-          <h1>Project Tracker</h1>
+          <h1>NPI Setup Checklist</h1>
           <p>Collaborative Setup & Execution Workspace</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <!-- GitHub Sync Button -->
-        <button class="sync-status-btn" id="openSyncBtn" title="Configure Sync for Team Collaboration">
-          <span class="sync-dot" id="syncStatusDot"></span>
-          <span id="syncStatusText">Sync: Offline</span>
+        <!-- Sync Settings Button -->
+        <button class="sync-settings-btn" id="openSyncBtn" title="Configure automatic sync">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"></path>
+            <path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"></path>
+            <path d="M3 16h4v4"></path>
+            <path d="M21 8h-4V4"></path>
+          </svg>
+          Sync Settings
         </button>
 
         <!-- Share Link Button -->
@@ -1030,7 +1013,7 @@
           <line x1="12" y1="8" x2="12.01" y2="8"></line>
         </svg>
         <span>
-          <strong>Team Collaboration Mode:</strong> Click <em>GitHub Sync</em> in the top right to link this page to your GitHub repository. Edits to tasks and descriptions will directly synchronize across all teammates!
+          <strong>Automatic saving is on:</strong> Every new, edited, or deleted task is saved to this browser immediately. Configure <em>Sync Settings</em> to also save changes to a shared GitHub source.
         </span>
       </div>
       <button class="info-banner-close" onclick="document.getElementById('infoBanner').style.display='none'">✕</button>
@@ -1230,7 +1213,7 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">
-          Update description and instructions for this task. Changes will be saved to your local workspace and synced to GitHub.
+          Update description and instructions for this task. Changes save automatically when you click Save Description.
         </p>
         <input type="hidden" id="descModalTaskId" />
         <textarea id="quickDescInput" class="form-control" style="min-height: 180px;" placeholder="Add detailed instructions, progress updates, or notes for the team..."></textarea>
@@ -1345,9 +1328,10 @@
 
   <script>
     /* ==========================================================================
-       Project Tracker Application Logic
+       NPI Setup Checklist Application Logic
        ========================================================================== */
-    const STORAGE_KEY = 'project_tracker_tasks_v1';
+    const STORAGE_KEY = 'npi_setup_checklist_tasks_v1';
+    const LEGACY_STORAGE_KEY = 'project_tracker_tasks_v1';
     const GITHUB_CONFIG_KEY = 'project_tracker_gh_config_v1';
     const GIST_CONFIG_KEY = 'project_tracker_gist_config_v1';
     const SYNC_MODE_KEY = 'project_tracker_sync_mode_v1';
@@ -1361,6 +1345,7 @@
     let currentSort = 'due-asc';
     let searchQuery = '';
     let ghFileSha = null;
+    let saveQueue = Promise.resolve();
 
     let syncMode = localStorage.getItem(SYNC_MODE_KEY) || 'gist'; // 'gist' | 'repo'
 
@@ -1430,8 +1415,6 @@
     const closeSyncModalBtn = document.getElementById('closeSyncModalBtn');
     const saveSyncBtn = document.getElementById('saveSyncBtn');
     const disconnectSyncBtn = document.getElementById('disconnectSyncBtn');
-    const syncStatusDot = document.getElementById('syncStatusDot');
-    const syncStatusText = document.getElementById('syncStatusText');
     const headerShareBtn = document.getElementById('headerShareBtn');
 
     // Tabs
@@ -1477,7 +1460,7 @@
     }
 
     async function loadInitialData() {
-      const localData = localStorage.getItem(STORAGE_KEY);
+      const localData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
       if (localData) {
         try {
           tasks = JSON.parse(localData);
@@ -1506,11 +1489,20 @@
           console.log('Using default in-memory starter data', e);
         }
       }
-      updateSyncUI();
     }
 
     function saveToLocalStorage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    // Save locally first, then serialize remote writes so rapid edits cannot overwrite
+    // a newer change with an older in-flight request.
+    function persistChanges() {
+      saveToLocalStorage();
+      saveQueue = saveQueue
+        .catch(() => {})
+        .then(() => syncPush());
+      return saveQueue;
     }
 
     /* ==========================================================================
@@ -1588,8 +1580,6 @@
     async function pullFromGist(showFeedback = true) {
       if (!gistConfig.id) return;
       const id = cleanGistId(gistConfig.id);
-      setSyncingState(true);
-
       try {
         const headers = { 'Accept': 'application/vnd.github.v3+json' };
         if (gistConfig.token) {
@@ -1621,8 +1611,6 @@
       } catch (err) {
         console.error('Error pulling from Gist:', err);
         if (showFeedback) showToast(`Gist Sync failed: ${err.message}`, 'error');
-      } finally {
-        setSyncingState(false);
       }
     }
 
@@ -1632,8 +1620,6 @@
         return;
       }
       const id = cleanGistId(gistConfig.id);
-      setSyncingState(true);
-
       try {
         const res = await fetch(`https://api.github.com/gists/${id}`, {
           method: 'PATCH',
@@ -1643,7 +1629,7 @@
             'Accept': 'application/vnd.github.v3+json'
           },
           body: JSON.stringify({
-            description: 'Project Tracker Data (Setup 2026)',
+            description: 'NPI Setup Checklist Data (Setup 2026)',
             files: {
               'tasks.json': {
                 content: JSON.stringify(tasks, null, 2)
@@ -1657,8 +1643,6 @@
       } catch (err) {
         console.error('Failed to sync to Gist:', err);
         showToast(`Failed to sync to Gist: ${err.message}`, 'error');
-      } finally {
-        setSyncingState(false);
       }
     }
 
@@ -1670,8 +1654,6 @@
         return;
       }
       gistConfig.token = token;
-      setSyncingState(true);
-
       try {
         const res = await fetch('https://api.github.com/gists', {
           method: 'POST',
@@ -1681,7 +1663,7 @@
             'Accept': 'application/vnd.github.v3+json'
           },
           body: JSON.stringify({
-            description: 'Project Tracker - Setup 2026',
+            description: 'NPI Setup Checklist - Setup 2026',
             public: true,
             files: {
               'tasks.json': {
@@ -1698,13 +1680,10 @@
         syncMode = 'gist';
         saveGistConfig();
         updateGistShareBox();
-        updateSyncUI();
         showToast('Created new GitHub Gist! Share link ready.', 'success');
       } catch (err) {
         console.error('Failed to create Gist:', err);
         showToast(`Could not create Gist: ${err.message}`, 'error');
-      } finally {
-        setSyncingState(false);
       }
     }
 
@@ -1726,27 +1705,9 @@
       ghConfig.path = ghPathInput.value;
     }
 
-    function updateSyncUI() {
-      if (syncMode === 'gist' && gistConfig.id) {
-        syncStatusDot.className = 'sync-dot connected';
-        const shortId = cleanGistId(gistConfig.id).slice(0, 7);
-        syncStatusText.textContent = `Gist: ${shortId}...`;
-        headerShareBtn.style.display = 'inline-flex';
-      } else if (syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
-        syncStatusDot.className = 'sync-dot connected';
-        syncStatusText.textContent = `Repo: ${ghConfig.owner}/${ghConfig.repo}`;
-        headerShareBtn.style.display = 'none';
-      } else {
-        syncStatusDot.className = 'sync-dot';
-        syncStatusText.textContent = 'Sync: Offline';
-        headerShareBtn.style.display = 'none';
-      }
-    }
-
     async function pullFromGitHub(showFeedback = true) {
       if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) return;
 
-      setSyncingState(true);
       const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}?ref=${ghConfig.branch}`;
 
       try {
@@ -1775,8 +1736,6 @@
       } catch (err) {
         console.error('Error pulling from GitHub:', err);
         if (showFeedback) showToast(`GitHub Sync failed: ${err.message}`, 'error');
-      } finally {
-        setSyncingState(false);
       }
     }
 
@@ -1786,7 +1745,6 @@
         return;
       }
 
-      setSyncingState(true);
       const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}`;
       const jsonString = JSON.stringify(tasks, null, 2);
       const encodedContent = btoa(unescape(encodeURIComponent(jsonString)));
@@ -1827,8 +1785,6 @@
       } catch (err) {
         console.error('Failed to commit to GitHub:', err);
         showToast(`Commit to GitHub failed: ${err.message}`, 'error');
-      } finally {
-        setSyncingState(false);
       }
     }
 
@@ -1839,15 +1795,6 @@
         await pushToGitHub();
       } else {
         saveToLocalStorage();
-      }
-    }
-
-    function setSyncingState(isSyncing) {
-      if (isSyncing) {
-        syncStatusDot.className = 'sync-dot syncing';
-        syncStatusText.textContent = 'Syncing...';
-      } else {
-        updateSyncUI();
       }
     }
 
@@ -2149,9 +2096,9 @@
       }
 
       taskModal.style.display = 'none';
-      saveToLocalStorage();
+      const savePromise = persistChanges();
       render();
-      await syncPush();
+      await savePromise;
     }
 
     async function deleteTask(id) {
@@ -2159,10 +2106,10 @@
       if (!confirm(`Are you sure you want to delete "${task ? task.title : 'this task'}"?`)) return;
 
       tasks = tasks.filter(t => t.id !== id);
-      saveToLocalStorage();
+      const savePromise = persistChanges();
       render();
       showToast('Task deleted', 'success');
-      await syncPush();
+      await savePromise;
     }
 
     // Quick cycle status
@@ -2177,9 +2124,9 @@
       task.status = nextStatus;
       task.updatedAt = new Date().toISOString();
 
-      saveToLocalStorage();
+      const savePromise = persistChanges();
       render();
-      await syncPush();
+      await savePromise;
     }
 
     /* ==========================================================================
@@ -2205,10 +2152,10 @@
       task.updatedAt = new Date().toISOString();
 
       descModal.style.display = 'none';
-      saveToLocalStorage();
+      const savePromise = persistChanges();
       render();
       showToast('Description saved!', 'success');
-      await syncPush();
+      await savePromise;
     }
 
     /* ==========================================================================
@@ -2228,7 +2175,6 @@
         gistConfig.token = token;
         saveGistConfig();
         updateGistShareBox();
-        updateSyncUI();
         syncModal.style.display = 'none';
 
         if (gistConfig.id) {
@@ -2246,7 +2192,6 @@
 
         localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(ghConfig));
         localStorage.setItem(SYNC_MODE_KEY, 'repo');
-        updateSyncUI();
         syncModal.style.display = 'none';
 
         if (ghConfig.owner && ghConfig.repo && ghConfig.token) {
@@ -2272,7 +2217,6 @@
         ghRepoInput.value = '';
         ghTokenInput.value = '';
       }
-      updateSyncUI();
       syncModal.style.display = 'none';
       showToast('Sync disconnected. Now in Local Mode.', 'info');
     }
@@ -2314,7 +2258,7 @@
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `project_tracker_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `npi_setup_checklist_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
