@@ -1197,11 +1197,11 @@
         <div class="form-row">
           <div class="form-group">
             <label for="ghOwner">Repo Owner / Org</label>
-            <input type="text" id="ghOwner" class="form-control" placeholder="e.g. your-username or team-org" />
+            <input type="text" id="ghOwner" class="form-control" value="One-Shortcuts" placeholder="e.g. One-Shortcuts" />
           </div>
           <div class="form-group">
             <label for="ghRepo">Repository Name</label>
-            <input type="text" id="ghRepo" class="form-control" placeholder="e.g. setup-2026-checklist" />
+            <input type="text" id="ghRepo" class="form-control" value="Tracker" placeholder="e.g. Tracker" />
           </div>
         </div>
 
@@ -1260,8 +1260,8 @@
 
     // GitHub Sync Configuration
     let ghConfig = {
-      owner: '',
-      repo: '',
+      owner: 'One-Shortcuts',
+      repo: 'Tracker',
       branch: 'main',
       path: 'data/tasks.json',
       token: ''
@@ -1388,13 +1388,17 @@
       if (savedConfig) {
         try {
           ghConfig = JSON.parse(savedConfig);
-          ghOwnerInput.value = ghConfig.owner || '';
-          ghRepoInput.value = ghConfig.repo || '';
-          ghBranchInput.value = ghConfig.branch || 'main';
-          ghPathInput.value = ghConfig.path || 'data/tasks.json';
-          ghTokenInput.value = ghConfig.token || '';
         } catch (e) {}
       }
+      ghOwnerInput.value = ghConfig.owner || 'One-Shortcuts';
+      ghRepoInput.value = ghConfig.repo || 'Tracker';
+      ghBranchInput.value = ghConfig.branch || 'main';
+      ghPathInput.value = ghConfig.path || 'data/tasks.json';
+      ghTokenInput.value = ghConfig.token || '';
+      ghConfig.owner = ghOwnerInput.value;
+      ghConfig.repo = ghRepoInput.value;
+      ghConfig.branch = ghBranchInput.value;
+      ghConfig.path = ghPathInput.value;
     }
 
     function updateSyncUI() {

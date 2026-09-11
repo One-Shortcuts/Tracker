@@ -32,16 +32,16 @@ git add .
 # 3. Commit files
 git commit -m "Initial commit: Project tracker with GitHub sync"
 
-# 4. Link to your GitHub repository (replace with your repo URL)
+# 4. Link to your GitHub repository
 git branch -M main
-git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>.git
+git remote add origin https://github.com/One-Shortcuts/Tracker.git
 
 # 5. Push to GitHub
 git push -u origin main
 ```
 
 ### Step 2: Enable GitHub Pages
-1. Go to your repository on [GitHub](https://github.com).
+1. Go to your repository on GitHub: [https://github.com/One-Shortcuts/Tracker](https://github.com/One-Shortcuts/Tracker)
 2. Click **Settings** (gear icon) > **Pages** (in the left sidebar).
 3. Under **Build and deployment**:
    - **Source**: Select `Deploy from a branch`.
@@ -49,7 +49,7 @@ git push -u origin main
 4. Click **Save**.
 5. Within 1–2 minutes, GitHub will display your live URL:
    ```
-   https://<YOUR_GITHUB_USERNAME>.github.io/<YOUR_REPO_NAME>/
+   https://one-shortcuts.github.io/Tracker/
    ```
 
 ---
