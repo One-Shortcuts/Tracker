@@ -60,8 +60,7 @@ The easiest and cleanest way to collaborate is with a **GitHub Gist**:
 
 ### Step 1: Create & Connect Your Gist
 1. Open your live NPI Setup Checklist: `https://one-shortcuts.github.io/Tracker/`
-2. Click **Sync Settings** in the top right header.
-3. In the **GitHub Gist** tab:
+2. Configure the GitHub Gist connection in the deployment/backend configuration:
    - Enter your [GitHub Personal Access Token](https://github.com/settings/tokens?type=beta) with the **`gist`** scope.
    - Click **`+ Create New Gist From Current Tasks`**.
    - Your Gist will be created instantly and the **Team Share Link** will appear!
@@ -78,7 +77,7 @@ The easiest and cleanest way to collaborate is with a **GitHub Gist**:
 
 ### Alternative: GitHub Repository Sync
 If you prefer committing directly to the repo's `data/tasks.json`:
-1. Select the **GitHub Repository** tab in Sync Settings.
+1. Configure the **GitHub Repository** connection in the deployment/backend configuration.
 2. Provide a Personal Access Token with **Contents: Read and Write** permissions.
 3. Edits will commit directly to `data/tasks.json` on the `main` branch.
 
