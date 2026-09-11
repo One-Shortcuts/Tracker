@@ -54,26 +54,33 @@ git push -u origin main
 
 ---
 
-## 👥 How Team Members Collaborate & Edit Descriptions
+## 👥 How Team Members Collaborate & Edit Descriptions (Using GitHub Gist)
 
-Because GitHub Pages is a static host without a traditional database, the tracker includes a **direct GitHub Repository Sync** engine:
+The easiest and cleanest way to collaborate is with a **GitHub Gist**:
 
-### For Each Team Member:
-1. Open the hosted project tracker URL.
-2. Click the **GitHub Sync** button in the top right.
-3. Enter:
-   - **Repo Owner**: The GitHub username or organization name.
-   - **Repository Name**: The repository name (e.g. `setup-2026-checklist`).
-   - **Personal Access Token (PAT)**:
-     - Generate a fine-grained token at [GitHub Settings > Personal Access Tokens](https://github.com/settings/tokens?type=beta).
-     - Under **Repository access**, select your tracker repository.
-     - Under **Permissions > Repository permissions**, set **Contents** to **Read and write**.
-4. Click **Connect & Sync**.
+### Step 1: Create & Connect Your Gist
+1. Open your live Project Tracker: `https://one-shortcuts.github.io/Tracker/`
+2. Click **Sync** in the top right header.
+3. In the **GitHub Gist** tab:
+   - Enter your [GitHub Personal Access Token](https://github.com/settings/tokens?type=beta) with the **`gist`** scope.
+   - Click **`+ Create New Gist From Current Tasks`**.
+   - Your Gist will be created instantly and the **Team Share Link** will appear!
 
-### How It Syncs:
-- **Instant Save**: Whenever a teammate creates a task or clicks a description to edit it, the change is committed directly to `data/tasks.json` in the GitHub repo.
-- **Team Updates**: When opening the page, the tracker automatically pulls the latest `data/tasks.json` from GitHub.
-- **Local Fallback**: If a teammate doesn't have a GitHub account or token, changes are stored safely in their browser's `localStorage` and can be exported as CSV or JSON.
+### Step 2: Share With Your Team
+1. Click **Copy** on the Team Share Link (it looks like `https://one-shortcuts.github.io/Tracker/?gist=YOUR_GIST_ID`).
+2. Send this URL to your teammates.
+3. **When teammates open the link**:
+   - The shared tasks load automatically.
+   - Teammates can enter their GitHub token (with `gist` scope) once to save edits.
+   - Clicking on any task's **Description** opens the editor to update notes, requirements, or progress. Any edit saves directly to the shared Gist!
+
+---
+
+### Alternative: GitHub Repository Sync
+If you prefer committing directly to the repo's `data/tasks.json`:
+1. Select the **GitHub Repository** tab in Sync Settings.
+2. Provide a Personal Access Token with **Contents: Read and Write** permissions.
+3. Edits will commit directly to `data/tasks.json` on the `main` branch.
 
 ---
 

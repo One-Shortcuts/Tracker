@@ -826,6 +826,57 @@
       border-left-color: var(--danger);
     }
 
+    /* Sync Tabs & Gist Share */
+    .sync-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-body);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      margin-bottom: 16px;
+    }
+
+    .sync-tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+
+    .sync-tab-btn.active {
+      background: var(--bg-surface);
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .share-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .share-link-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .share-link-input {
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
     /* Sync Indicator in Header */
     .sync-status-btn {
       display: inline-flex;
@@ -920,9 +971,18 @@
 
       <div class="header-actions">
         <!-- GitHub Sync Button -->
-        <button class="sync-status-btn" id="openSyncBtn" title="Configure GitHub Sync for Team Collaboration">
+        <button class="sync-status-btn" id="openSyncBtn" title="Configure Sync for Team Collaboration">
           <span class="sync-dot" id="syncStatusDot"></span>
-          <span id="syncStatusText">GitHub Sync: Offline</span>
+          <span id="syncStatusText">Sync: Offline</span>
+        </button>
+
+        <!-- Share Link Button -->
+        <button class="btn btn-outline" id="headerShareBtn" title="Copy Team Share URL" style="display: none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          Share Link
         </button>
 
         <!-- Export/Import Buttons -->
@@ -1182,50 +1242,92 @@
     </div>
   </div>
 
-  <!-- GitHub Sync Configuration Modal -->
+  <!-- GitHub / Gist Sync Configuration Modal -->
   <div class="modal-backdrop" id="syncModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>GitHub Team Sync Settings</h2>
+        <h2>Team Sync Settings</h2>
         <button class="modal-close-btn" id="closeSyncModalBtn">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-          Sync this project tracker with your GitHub repository so all team members can view, add, and edit tasks collaboratively.
-        </p>
+        <!-- Mode Tabs -->
+        <div class="sync-tabs">
+          <button type="button" class="sync-tab-btn active" id="tabGistBtn">GitHub Gist (Easiest)</button>
+          <button type="button" class="sync-tab-btn" id="tabRepoBtn">GitHub Repository</button>
+        </div>
 
-        <div class="form-row">
+        <!-- Tab 1: GitHub Gist -->
+        <div id="tabGistContent" style="display: flex; flex-direction: column; gap: 16px;">
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Store and sync tasks in real time using a <strong>GitHub Gist</strong>. Team members can view and edit synchronously with zero git merge conflicts.
+          </p>
+
           <div class="form-group">
-            <label for="ghOwner">Repo Owner / Org</label>
-            <input type="text" id="ghOwner" class="form-control" value="One-Shortcuts" placeholder="e.g. One-Shortcuts" />
+            <label for="gistIdInput">Gist ID or URL</label>
+            <input type="text" id="gistIdInput" class="form-control" placeholder="e.g. 7f3b890a12... or https://gist.github.com/..." />
           </div>
+
           <div class="form-group">
-            <label for="ghRepo">Repository Name</label>
-            <input type="text" id="ghRepo" class="form-control" value="Tracker" placeholder="e.g. Tracker" />
+            <label for="gistTokenInput">GitHub Personal Access Token (PAT)</label>
+            <input type="password" id="gistTokenInput" class="form-control" placeholder="ghp_... or github_pat_..." />
+            <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 2px;">
+              Requires only the lightweight <strong>gist</strong> permission scope. Stored safely in your local browser.
+            </span>
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-outline btn-sm" id="createGistBtn">
+              + Create New Gist From Current Tasks
+            </button>
+          </div>
+
+          <!-- Share Link Box -->
+          <div class="share-box" id="gistShareBox" style="display: none;">
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--success-text);">
+              🔗 Team Share Link (Loads live tasks automatically):
+            </span>
+            <div class="share-link-row">
+              <input type="text" id="shareUrlInput" class="form-control share-link-input" readonly />
+              <button type="button" class="btn btn-outline btn-sm" id="copyModalShareBtn">Copy</button>
+            </div>
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="ghBranch">Branch</label>
-            <input type="text" id="ghBranch" class="form-control" value="main" />
-          </div>
-          <div class="form-group">
-            <label for="ghPath">Data File Path</label>
-            <input type="text" id="ghPath" class="form-control" value="data/tasks.json" />
-          </div>
-        </div>
+        <!-- Tab 2: GitHub Repository -->
+        <div id="tabRepoContent" style="display: none; flex-direction: column; gap: 16px;">
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Commit task edits directly to <code>data/tasks.json</code> in your repository.
+          </p>
 
-        <div class="form-group">
-          <label for="ghToken">Personal Access Token (PAT)</label>
-          <input type="password" id="ghToken" class="form-control" placeholder="github_pat_... or ghp_..." />
-          <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 2px;">
-            Requires fine-grained token with <strong>Contents: Read and Write</strong> permissions for this repository. Token is stored only in your local browser storage.
-          </span>
-        </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ghOwner">Repo Owner / Org</label>
+              <input type="text" id="ghOwner" class="form-control" value="One-Shortcuts" placeholder="e.g. One-Shortcuts" />
+            </div>
+            <div class="form-group">
+              <label for="ghRepo">Repository Name</label>
+              <input type="text" id="ghRepo" class="form-control" value="Tracker" placeholder="e.g. Tracker" />
+            </div>
+          </div>
 
-        <div style="background: var(--bg-body); border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md); font-size: 0.8rem; color: var(--text-muted);">
-          <strong>How it works:</strong> Each team member adds their token once. Any time someone saves or edits a task/description, it makes a direct commit to <code>data/tasks.json</code> in your repo.
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ghBranch">Branch</label>
+              <input type="text" id="ghBranch" class="form-control" value="main" />
+            </div>
+            <div class="form-group">
+              <label for="ghPath">Data File Path</label>
+              <input type="text" id="ghPath" class="form-control" value="data/tasks.json" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ghToken">Personal Access Token (PAT)</label>
+            <input type="password" id="ghToken" class="form-control" placeholder="github_pat_... or ghp_..." />
+            <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 2px;">
+              Requires fine-grained token with <strong>Contents: Read and Write</strong> permissions for this repository.
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1247,6 +1349,8 @@
        ========================================================================== */
     const STORAGE_KEY = 'project_tracker_tasks_v1';
     const GITHUB_CONFIG_KEY = 'project_tracker_gh_config_v1';
+    const GIST_CONFIG_KEY = 'project_tracker_gist_config_v1';
+    const SYNC_MODE_KEY = 'project_tracker_sync_mode_v1';
 
     // State
     let tasks = [];
@@ -1256,9 +1360,15 @@
     let currentFilterAssignee = 'ALL';
     let currentSort = 'due-asc';
     let searchQuery = '';
-    let ghFileSha = null; // Stores git sha for clean conflict-free commits
+    let ghFileSha = null;
 
-    // GitHub Sync Configuration
+    let syncMode = localStorage.getItem(SYNC_MODE_KEY) || 'gist'; // 'gist' | 'repo'
+
+    let gistConfig = {
+      id: '',
+      token: ''
+    };
+
     let ghConfig = {
       owner: 'One-Shortcuts',
       repo: 'Tracker',
@@ -1314,19 +1424,36 @@
     const descModalTaskId = document.getElementById('descModalTaskId');
     const quickDescInput = document.getElementById('quickDescInput');
 
-    // GitHub Sync Modal
+    // Sync Modal Elements
     const syncModal = document.getElementById('syncModal');
     const openSyncBtn = document.getElementById('openSyncBtn');
     const closeSyncModalBtn = document.getElementById('closeSyncModalBtn');
     const saveSyncBtn = document.getElementById('saveSyncBtn');
     const disconnectSyncBtn = document.getElementById('disconnectSyncBtn');
+    const syncStatusDot = document.getElementById('syncStatusDot');
+    const syncStatusText = document.getElementById('syncStatusText');
+    const headerShareBtn = document.getElementById('headerShareBtn');
+
+    // Tabs
+    const tabGistBtn = document.getElementById('tabGistBtn');
+    const tabRepoBtn = document.getElementById('tabRepoBtn');
+    const tabGistContent = document.getElementById('tabGistContent');
+    const tabRepoContent = document.getElementById('tabRepoContent');
+
+    // Gist Inputs
+    const gistIdInput = document.getElementById('gistIdInput');
+    const gistTokenInput = document.getElementById('gistTokenInput');
+    const createGistBtn = document.getElementById('createGistBtn');
+    const gistShareBox = document.getElementById('gistShareBox');
+    const shareUrlInput = document.getElementById('shareUrlInput');
+    const copyModalShareBtn = document.getElementById('copyModalShareBtn');
+
+    // Repo Inputs
     const ghOwnerInput = document.getElementById('ghOwner');
     const ghRepoInput = document.getElementById('ghRepo');
     const ghBranchInput = document.getElementById('ghBranch');
     const ghPathInput = document.getElementById('ghPath');
     const ghTokenInput = document.getElementById('ghToken');
-    const syncStatusDot = document.getElementById('syncStatusDot');
-    const syncStatusText = document.getElementById('syncStatusText');
 
     // Toast
     const toast = document.getElementById('toast');
@@ -1341,13 +1468,14 @@
        ========================================================================== */
     async function init() {
       loadTheme();
+      loadGistConfig();
       loadGitHubConfig();
+      switchSyncTab(syncMode);
       await loadInitialData();
       setupEventListeners();
       render();
     }
 
-    // Load tasks from GitHub if configured, or local storage, or fallback seed
     async function loadInitialData() {
       const localData = localStorage.getItem(STORAGE_KEY);
       if (localData) {
@@ -1358,11 +1486,16 @@
         }
       }
 
-      // If GitHub config exists with token, try pulling latest from GitHub
-      if (ghConfig.owner && ghConfig.repo && ghConfig.token) {
+      // 1. Try Gist sync if active and ID exists
+      if (syncMode === 'gist' && gistConfig.id) {
+        await pullFromGist(false);
+      }
+      // 2. Try GitHub Repo sync if active and configured
+      else if (syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
         await pullFromGitHub(false);
-      } else if (!tasks || tasks.length === 0) {
-        // Fetch static data/tasks.json
+      }
+      // 3. Fallback seed data
+      else if (!tasks || tasks.length === 0) {
         try {
           const resp = await fetch('data/tasks.json');
           if (resp.ok) {
@@ -1381,8 +1514,200 @@
     }
 
     /* ==========================================================================
-       GitHub REST API Integration
+       Gist & GitHub Sync Integrations
        ========================================================================== */
+    function cleanGistId(input) {
+      if (!input) return '';
+      input = input.trim();
+      if (input.includes('/')) {
+        return input.split('/').filter(Boolean).pop();
+      }
+      return input;
+    }
+
+    function getShareUrl() {
+      if (!gistConfig.id) return '';
+      const baseUrl = window.location.origin + window.location.pathname;
+      return `${baseUrl}?gist=${cleanGistId(gistConfig.id)}`;
+    }
+
+    function updateGistShareBox() {
+      if (gistConfig.id) {
+        gistShareBox.style.display = 'flex';
+        shareUrlInput.value = getShareUrl();
+        headerShareBtn.style.display = 'inline-flex';
+      } else {
+        gistShareBox.style.display = 'none';
+        headerShareBtn.style.display = 'none';
+      }
+    }
+
+    function loadGistConfig() {
+      const saved = localStorage.getItem(GIST_CONFIG_KEY);
+      if (saved) {
+        try {
+          gistConfig = JSON.parse(saved);
+        } catch (e) {}
+      }
+
+      // Check URL param ?gist=...
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlGist = urlParams.get('gist');
+      if (urlGist) {
+        gistConfig.id = cleanGistId(urlGist);
+        syncMode = 'gist';
+        saveGistConfig();
+      }
+
+      gistIdInput.value = gistConfig.id || '';
+      gistTokenInput.value = gistConfig.token || '';
+      updateGistShareBox();
+    }
+
+    function saveGistConfig() {
+      localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify(gistConfig));
+      localStorage.setItem(SYNC_MODE_KEY, syncMode);
+    }
+
+    function switchSyncTab(mode) {
+      syncMode = mode;
+      localStorage.setItem(SYNC_MODE_KEY, mode);
+      if (mode === 'gist') {
+        tabGistBtn.classList.add('active');
+        tabRepoBtn.classList.remove('active');
+        tabGistContent.style.display = 'flex';
+        tabRepoContent.style.display = 'none';
+      } else {
+        tabRepoBtn.classList.add('active');
+        tabGistBtn.classList.remove('active');
+        tabRepoContent.style.display = 'flex';
+        tabGistContent.style.display = 'none';
+      }
+    }
+
+    async function pullFromGist(showFeedback = true) {
+      if (!gistConfig.id) return;
+      const id = cleanGistId(gistConfig.id);
+      setSyncingState(true);
+
+      try {
+        const headers = { 'Accept': 'application/vnd.github.v3+json' };
+        if (gistConfig.token) {
+          headers['Authorization'] = `Bearer ${gistConfig.token}`;
+        }
+        const res = await fetch(`https://api.github.com/gists/${id}`, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+        const data = await res.json();
+        let tasksContent = null;
+        if (data.files) {
+          if (data.files['tasks.json'] && data.files['tasks.json'].content) {
+            tasksContent = data.files['tasks.json'].content;
+          } else {
+            const jsonFile = Object.values(data.files).find(f => f.filename && f.filename.endsWith('.json') && f.content);
+            if (jsonFile) tasksContent = jsonFile.content;
+          }
+        }
+
+        if (tasksContent) {
+          const parsed = JSON.parse(tasksContent);
+          if (Array.isArray(parsed)) {
+            tasks = parsed;
+            saveToLocalStorage();
+            render();
+            if (showFeedback) showToast('Loaded latest tasks from GitHub Gist!', 'success');
+          }
+        }
+      } catch (err) {
+        console.error('Error pulling from Gist:', err);
+        if (showFeedback) showToast(`Gist Sync failed: ${err.message}`, 'error');
+      } finally {
+        setSyncingState(false);
+      }
+    }
+
+    async function pushToGist() {
+      if (!gistConfig.id || !gistConfig.token) {
+        saveToLocalStorage();
+        return;
+      }
+      const id = cleanGistId(gistConfig.id);
+      setSyncingState(true);
+
+      try {
+        const res = await fetch(`https://api.github.com/gists/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${gistConfig.token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify({
+            description: 'Project Tracker Data (Setup 2026)',
+            files: {
+              'tasks.json': {
+                content: JSON.stringify(tasks, null, 2)
+              }
+            }
+          })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        showToast('Saved & synced to GitHub Gist!', 'success');
+      } catch (err) {
+        console.error('Failed to sync to Gist:', err);
+        showToast(`Failed to sync to Gist: ${err.message}`, 'error');
+      } finally {
+        setSyncingState(false);
+      }
+    }
+
+    async function createNewGist() {
+      const token = (gistTokenInput.value || gistConfig.token || '').trim();
+      if (!token) {
+        showToast('Please enter your GitHub Token below first with "gist" scope.', 'error');
+        gistTokenInput.focus();
+        return;
+      }
+      gistConfig.token = token;
+      setSyncingState(true);
+
+      try {
+        const res = await fetch('https://api.github.com/gists', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify({
+            description: 'Project Tracker - Setup 2026',
+            public: true,
+            files: {
+              'tasks.json': {
+                content: JSON.stringify(tasks, null, 2)
+              }
+            }
+          })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        gistConfig.id = data.id;
+        gistIdInput.value = data.id;
+        syncMode = 'gist';
+        saveGistConfig();
+        updateGistShareBox();
+        updateSyncUI();
+        showToast('Created new GitHub Gist! Share link ready.', 'success');
+      } catch (err) {
+        console.error('Failed to create Gist:', err);
+        showToast(`Could not create Gist: ${err.message}`, 'error');
+      } finally {
+        setSyncingState(false);
+      }
+    }
+
     function loadGitHubConfig() {
       const savedConfig = localStorage.getItem(GITHUB_CONFIG_KEY);
       if (savedConfig) {
@@ -1402,12 +1727,19 @@
     }
 
     function updateSyncUI() {
-      if (ghConfig.owner && ghConfig.repo && ghConfig.token) {
+      if (syncMode === 'gist' && gistConfig.id) {
         syncStatusDot.className = 'sync-dot connected';
-        syncStatusText.textContent = `Synced: ${ghConfig.owner}/${ghConfig.repo}`;
+        const shortId = cleanGistId(gistConfig.id).slice(0, 7);
+        syncStatusText.textContent = `Gist: ${shortId}...`;
+        headerShareBtn.style.display = 'inline-flex';
+      } else if (syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
+        syncStatusDot.className = 'sync-dot connected';
+        syncStatusText.textContent = `Repo: ${ghConfig.owner}/${ghConfig.repo}`;
+        headerShareBtn.style.display = 'none';
       } else {
         syncStatusDot.className = 'sync-dot';
-        syncStatusText.textContent = 'GitHub Sync: Offline';
+        syncStatusText.textContent = 'Sync: Offline';
+        headerShareBtn.style.display = 'none';
       }
     }
 
@@ -1481,7 +1813,6 @@
         });
 
         if (!res.ok) {
-          // If conflict (409), attempt to refresh SHA and notify
           if (res.status === 409) {
             await pullFromGitHub(false);
             showToast('Concurrent edit detected: Refreshed with latest GitHub changes. Please check and save again.', 'error');
@@ -1498,6 +1829,16 @@
         showToast(`Commit to GitHub failed: ${err.message}`, 'error');
       } finally {
         setSyncingState(false);
+      }
+    }
+
+    async function syncPush() {
+      if (syncMode === 'gist' && gistConfig.id && gistConfig.token) {
+        await pushToGist();
+      } else if (syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
+        await pushToGitHub();
+      } else {
+        saveToLocalStorage();
       }
     }
 
@@ -1810,7 +2151,7 @@
       taskModal.style.display = 'none';
       saveToLocalStorage();
       render();
-      await pushToGitHub();
+      await syncPush();
     }
 
     async function deleteTask(id) {
@@ -1821,7 +2162,7 @@
       saveToLocalStorage();
       render();
       showToast('Task deleted', 'success');
-      await pushToGitHub();
+      await syncPush();
     }
 
     // Quick cycle status
@@ -1838,7 +2179,7 @@
 
       saveToLocalStorage();
       render();
-      await pushToGitHub();
+      await syncPush();
     }
 
     /* ==========================================================================
@@ -1867,44 +2208,86 @@
       saveToLocalStorage();
       render();
       showToast('Description saved!', 'success');
-      await pushToGitHub();
+      await syncPush();
     }
 
     /* ==========================================================================
-       GitHub Sync Modal Logic
+       GitHub / Gist Sync Modal Logic
        ========================================================================== */
     function openSyncModal() {
+      switchSyncTab(syncMode);
+      updateGistShareBox();
       syncModal.style.display = 'flex';
     }
 
     async function saveSyncSettings() {
-      ghConfig.owner = ghOwnerInput.value.trim();
-      ghConfig.repo = ghRepoInput.value.trim();
-      ghConfig.branch = ghBranchInput.value.trim() || 'main';
-      ghConfig.path = ghPathInput.value.trim() || 'data/tasks.json';
-      ghConfig.token = ghTokenInput.value.trim();
+      if (syncMode === 'gist') {
+        const id = cleanGistId(gistIdInput.value);
+        const token = gistTokenInput.value.trim();
+        gistConfig.id = id;
+        gistConfig.token = token;
+        saveGistConfig();
+        updateGistShareBox();
+        updateSyncUI();
+        syncModal.style.display = 'none';
 
-      localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(ghConfig));
-      updateSyncUI();
-      syncModal.style.display = 'none';
-
-      if (ghConfig.owner && ghConfig.repo && ghConfig.token) {
-        showToast('Testing GitHub sync...', 'info');
-        await pullFromGitHub(true);
+        if (gistConfig.id) {
+          showToast('Syncing with GitHub Gist...', 'info');
+          await pullFromGist(true);
+        } else {
+          showToast('Settings saved in offline mode.', 'info');
+        }
       } else {
-        showToast('Settings saved in offline mode.', 'info');
+        ghConfig.owner = ghOwnerInput.value.trim();
+        ghConfig.repo = ghRepoInput.value.trim();
+        ghConfig.branch = ghBranchInput.value.trim() || 'main';
+        ghConfig.path = ghPathInput.value.trim() || 'data/tasks.json';
+        ghConfig.token = ghTokenInput.value.trim();
+
+        localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(ghConfig));
+        localStorage.setItem(SYNC_MODE_KEY, 'repo');
+        updateSyncUI();
+        syncModal.style.display = 'none';
+
+        if (ghConfig.owner && ghConfig.repo && ghConfig.token) {
+          showToast('Testing GitHub repo sync...', 'info');
+          await pullFromGitHub(true);
+        } else {
+          showToast('Settings saved in offline mode.', 'info');
+        }
       }
     }
 
     function disconnectSync() {
-      ghConfig = { owner: '', repo: '', branch: 'main', path: 'data/tasks.json', token: '' };
-      localStorage.removeItem(GITHUB_CONFIG_KEY);
-      ghOwnerInput.value = '';
-      ghRepoInput.value = '';
-      ghTokenInput.value = '';
+      if (syncMode === 'gist') {
+        gistConfig = { id: '', token: '' };
+        localStorage.removeItem(GIST_CONFIG_KEY);
+        gistIdInput.value = '';
+        gistTokenInput.value = '';
+        updateGistShareBox();
+      } else {
+        ghConfig = { owner: '', repo: '', branch: 'main', path: 'data/tasks.json', token: '' };
+        localStorage.removeItem(GITHUB_CONFIG_KEY);
+        ghOwnerInput.value = '';
+        ghRepoInput.value = '';
+        ghTokenInput.value = '';
+      }
       updateSyncUI();
       syncModal.style.display = 'none';
-      showToast('GitHub Sync disconnected. Now running in Local Mode.', 'info');
+      showToast('Sync disconnected. Now in Local Mode.', 'info');
+    }
+
+    function copyShareLink() {
+      const url = getShareUrl();
+      if (!url) {
+        showToast('No Gist connected yet.', 'error');
+        return;
+      }
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Team share link copied to clipboard!', 'success');
+      }).catch(() => {
+        prompt('Copy this link for your team:', url);
+      });
     }
 
     /* ==========================================================================
@@ -2060,6 +2443,13 @@
       closeSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
       saveSyncBtn.addEventListener('click', saveSyncSettings);
       disconnectSyncBtn.addEventListener('click', disconnectSync);
+
+      // Sync Tabs & Gist Actions
+      tabGistBtn.addEventListener('click', () => switchSyncTab('gist'));
+      tabRepoBtn.addEventListener('click', () => switchSyncTab('repo'));
+      createGistBtn.addEventListener('click', createNewGist);
+      headerShareBtn.addEventListener('click', copyShareLink);
+      copyModalShareBtn.addEventListener('click', copyShareLink);
 
       // General Actions
       themeToggleBtn.addEventListener('click', toggleTheme);
