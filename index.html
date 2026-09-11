@@ -713,6 +713,14 @@
       max-height: 90vh;
     }
 
+    #taskForm {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .modal-header {
       padding: 18px 24px;
       border-bottom: 1px solid var(--border-color);
@@ -747,6 +755,15 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      min-height: 0;
+    }
+
+    #taskForm .modal-body {
+      flex: 1;
+    }
+
+    #taskForm .modal-footer {
+      flex-shrink: 0;
     }
 
     .modal-footer {
@@ -894,18 +911,127 @@
         -webkit-overflow-scrolling: touch;
       }
 
-      table {
-        min-width: 860px;
+      .table-container {
+        overflow-x: visible;
+        border: none;
+        background: transparent;
+        box-shadow: none;
       }
 
-      th,
-      td {
-        padding-left: 10px;
-        padding-right: 10px;
+      table,
+      thead,
+      tbody,
+      tbody tr,
+      tbody td {
+        display: block;
+        width: 100% !important;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      tbody tr {
+        padding: 10px 14px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+      }
+
+      tbody td {
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      tbody td::before {
+        content: attr(data-label);
+        padding-top: 3px;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      tbody td:first-child {
+        display: block;
+        padding-top: 2px;
+      }
+
+      tbody td:first-child::before,
+      tbody td:last-child::before {
+        display: none;
+      }
+
+      tbody td:first-child .task-cell-title {
+        font-size: 1rem;
+        line-height: 1.35;
+      }
+
+      tbody td:last-child {
+        display: flex;
+        justify-content: flex-end;
+        padding-bottom: 2px;
+        border-bottom: none;
+      }
+
+      .status-select {
+        min-width: 0;
+        max-width: 240px;
       }
 
       .desc-preview {
-        max-width: 220px;
+        max-width: none;
+        white-space: normal;
+        line-height: 1.4;
+      }
+
+      .assignee-wrap {
+        min-width: 0;
+      }
+
+      .assignee-wrap > span {
+        overflow-wrap: anywhere;
+      }
+
+      .modal-backdrop {
+        align-items: flex-start;
+        overflow-y: auto;
+        padding: 12px;
+      }
+
+      .modal-content {
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px);
+        margin: auto 0;
+      }
+
+      .modal-header {
+        padding: 14px 16px;
+      }
+
+      .modal-body {
+        padding: 16px;
+        gap: 14px;
+      }
+
+      .modal-footer {
+        padding: 12px 16px;
+      }
+
+      #taskForm .modal-footer .btn {
+        flex: 1;
       }
 
       .kanban-container {
@@ -1413,9 +1539,41 @@
        ========================================================================== */
     const STORAGE_KEY = 'npi_setup_checklist_tasks_v1';
     const LEGACY_STORAGE_KEY = 'project_tracker_tasks_v1';
+    const LOCAL_CHANGE_KEY = 'npi_setup_checklist_last_local_change_v1';
     const GITHUB_CONFIG_KEY = 'project_tracker_gh_config_v1';
     const GIST_CONFIG_KEY = 'project_tracker_gist_config_v1';
     const SYNC_MODE_KEY = 'project_tracker_sync_mode_v1';
+
+    // Safari private browsing can reject localStorage writes. Fall back to
+    // sessionStorage so edits still survive a refresh in the current tab.
+    function getStoredValue(key) {
+      try {
+        const localValue = window.localStorage.getItem(key);
+        if (localValue !== null) return localValue;
+      } catch (e) {}
+      try {
+        return window.sessionStorage.getItem(key);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function setStoredValue(key, value) {
+      try {
+        window.localStorage.setItem(key, value);
+        return;
+      } catch (e) {}
+      try {
+        window.sessionStorage.setItem(key, value);
+      } catch (e) {
+        console.error('Unable to save checklist data', e);
+      }
+    }
+
+    function removeStoredValue(key) {
+      try { window.localStorage.removeItem(key); } catch (e) {}
+      try { window.sessionStorage.removeItem(key); } catch (e) {}
+    }
 
     // State
     let tasks = [];
@@ -1427,8 +1585,9 @@
     let searchQuery = '';
     let ghFileSha = null;
     let saveQueue = Promise.resolve();
+    let hasLocalChanges = false;
 
-    let syncMode = localStorage.getItem(SYNC_MODE_KEY) || 'gist'; // 'gist' | 'repo'
+    let syncMode = getStoredValue(SYNC_MODE_KEY) || 'gist'; // 'gist' | 'repo'
 
     let gistConfig = {
       id: '',
@@ -1540,25 +1699,32 @@
     }
 
     async function loadInitialData() {
-      const localData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+      const localData = getStoredValue(STORAGE_KEY) || getStoredValue(LEGACY_STORAGE_KEY);
+      hasLocalChanges = Boolean(getStoredValue(LOCAL_CHANGE_KEY));
+      let hasValidLocalData = false;
       if (localData) {
         try {
-          tasks = JSON.parse(localData);
+          const parsedLocalData = JSON.parse(localData);
+          if (Array.isArray(parsedLocalData)) {
+            tasks = parsedLocalData;
+            hasValidLocalData = true;
+          }
         } catch (e) {
           console.error('Failed to parse local storage tasks', e);
         }
       }
 
-      // 1. Try Gist sync if active and ID exists
-      if (syncMode === 'gist' && gistConfig.id) {
+      // Keep local mutations (especially deletions) from being replaced by an
+      // older read-only remote snapshot when the page is refreshed.
+      if (!hasLocalChanges && syncMode === 'gist' && gistConfig.id) {
         await pullFromGist(false);
       }
       // 2. Try GitHub Repo sync if active and configured
-      else if (syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
+      else if (!hasLocalChanges && syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
         await pullFromGitHub(false);
       }
       // 3. Fallback seed data
-      else if (!tasks || tasks.length === 0) {
+      else if (!hasValidLocalData) {
         try {
           const resp = await fetch('data/tasks.json');
           if (resp.ok) {
@@ -1572,12 +1738,14 @@
     }
 
     function saveToLocalStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      setStoredValue(STORAGE_KEY, JSON.stringify(tasks));
     }
 
     // Save locally first, then serialize remote writes so rapid edits cannot overwrite
     // a newer change with an older in-flight request.
     function persistChanges() {
+      setStoredValue(LOCAL_CHANGE_KEY, new Date().toISOString());
+      hasLocalChanges = true;
       saveToLocalStorage();
       saveQueue = saveQueue
         .catch(() => {})
@@ -1615,7 +1783,7 @@
     }
 
     function loadGistConfig() {
-      const saved = localStorage.getItem(GIST_CONFIG_KEY);
+      const saved = getStoredValue(GIST_CONFIG_KEY);
       if (saved) {
         try {
           gistConfig = JSON.parse(saved);
@@ -1637,13 +1805,13 @@
     }
 
     function saveGistConfig() {
-      localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify(gistConfig));
-      localStorage.setItem(SYNC_MODE_KEY, syncMode);
+      setStoredValue(GIST_CONFIG_KEY, JSON.stringify(gistConfig));
+      setStoredValue(SYNC_MODE_KEY, syncMode);
     }
 
     function switchSyncTab(mode) {
       syncMode = mode;
-      localStorage.setItem(SYNC_MODE_KEY, mode);
+      setStoredValue(SYNC_MODE_KEY, mode);
       if (mode === 'gist') {
         tabGistBtn.classList.add('active');
         tabRepoBtn.classList.remove('active');
@@ -1768,7 +1936,7 @@
     }
 
     function loadGitHubConfig() {
-      const savedConfig = localStorage.getItem(GITHUB_CONFIG_KEY);
+      const savedConfig = getStoredValue(GITHUB_CONFIG_KEY);
       if (savedConfig) {
         try {
           ghConfig = JSON.parse(savedConfig);
@@ -1998,39 +2166,39 @@
         const dueInfo = getDueDateInfo(task.dueDate, task.status);
 
         tr.innerHTML = `
-          <td>
+          <td data-label="Task">
             <div class="task-cell-title" onclick="editTask('${task.id}')" style="cursor: pointer;" title="Click to view & edit task">
               <span>${escapeHtml(task.title || 'Untitled Task')}</span>
             </div>
           </td>
-          <td>
+          <td data-label="Status">
             <select class="status-select ${statusClass}" data-task-id="${escapeHtml(task.id)}" aria-label="Status for ${escapeHtml(task.title || 'task')}" title="Change task status">
               ${statusOptions}
             </select>
           </td>
-          <td>
+          <td data-label="Priority">
             <span class="badge ${priorityClass}">
               ${escapeHtml(task.priority || 'Medium')}
             </span>
           </td>
-          <td>
+          <td data-label="Description">
             <div class="desc-preview" onclick="openDescEditor('${task.id}')" title="Click to view/edit description">
               ${task.description ? escapeHtml(task.description) : '<span class="empty-desc">+ Add team description...</span>'}
             </div>
           </td>
-          <td>
+          <td data-label="Assignee">
             <div class="assignee-wrap">
               <div class="avatar">${getInitials(task.assignee)}</div>
               <span>${escapeHtml(task.assignee || 'Unassigned')}</span>
             </div>
           </td>
-          <td>
+          <td data-label="Due Date">
             <div class="due-date-cell">
               <span>${task.dueDate ? task.dueDate : '—'}</span>
               <span class="due-date-sub ${dueInfo.className}">${dueInfo.text}</span>
             </div>
           </td>
-          <td style="text-align: right;">
+          <td data-label="Actions" style="text-align: right;">
             <div class="row-actions">
               <button class="action-icon-btn" onclick="editTask('${task.id}')" title="Edit Task Details">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2272,8 +2440,8 @@
         ghConfig.path = ghPathInput.value.trim() || 'data/tasks.json';
         ghConfig.token = ghTokenInput.value.trim();
 
-        localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(ghConfig));
-        localStorage.setItem(SYNC_MODE_KEY, 'repo');
+        setStoredValue(GITHUB_CONFIG_KEY, JSON.stringify(ghConfig));
+        setStoredValue(SYNC_MODE_KEY, 'repo');
         syncModal.style.display = 'none';
 
         if (ghConfig.owner && ghConfig.repo && ghConfig.token) {
@@ -2288,13 +2456,13 @@
     function disconnectSync() {
       if (syncMode === 'gist') {
         gistConfig = { id: '', token: '' };
-        localStorage.removeItem(GIST_CONFIG_KEY);
+        removeStoredValue(GIST_CONFIG_KEY);
         gistIdInput.value = '';
         gistTokenInput.value = '';
         updateGistShareBox();
       } else {
         ghConfig = { owner: '', repo: '', branch: 'main', path: 'data/tasks.json', token: '' };
-        localStorage.removeItem(GITHUB_CONFIG_KEY);
+        removeStoredValue(GITHUB_CONFIG_KEY);
         ghOwnerInput.value = '';
         ghRepoInput.value = '';
         ghTokenInput.value = '';
@@ -2397,7 +2565,7 @@
     }
 
     function loadTheme() {
-      const savedTheme = localStorage.getItem('theme_preference') || 'light';
+      const savedTheme = getStoredValue('theme_preference') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
 
@@ -2405,7 +2573,7 @@
       const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
       const next = current === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme_preference', next);
+      setStoredValue('theme_preference', next);
     }
 
     /* ==========================================================================
