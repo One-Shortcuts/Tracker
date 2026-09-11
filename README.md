@@ -90,4 +90,8 @@ If you prefer committing directly to the repo's `data/tasks.json`:
 - **Search & Filters**: Filter by status, priority, assignee, or keyword search across tasks and descriptions.
 - **CSV Export**: 1-click download of the complete NPI checklist into an Excel/Sheets-compatible CSV file.
 - **Light & Dark Theme**: Automatically adapts or toggles with persistent preference.
-- **Zero External Dependencies**: Pure vanilla HTML5, CSS3, and JavaScript — loads instantly on mobile and desktop.
+- **Lightweight Frontend**: Vanilla HTML5, CSS3, and JavaScript with Supabase realtime sync.
+
+## 🔄 Shared Team Sync
+
+The checklist uses Supabase for shared cross-device storage and realtime updates. Run [`supabase/schema.sql`](supabase/schema.sql) once in the Supabase Dashboard SQL Editor to create the shared state table, security policies, and realtime publication. The client uses the Supabase publishable key, which is safe to expose in a browser; keep database policies restricted if the checklist should not be publicly editable.

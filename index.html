@@ -1533,6 +1533,7 @@
     <span id="toastMessage">Notification message</span>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     /* ==========================================================================
        NPI Setup Checklist Application Logic
@@ -1543,6 +1544,13 @@
     const GITHUB_CONFIG_KEY = 'project_tracker_gh_config_v1';
     const GIST_CONFIG_KEY = 'project_tracker_gist_config_v1';
     const SYNC_MODE_KEY = 'project_tracker_sync_mode_v1';
+    const SUPABASE_URL = 'https://mxyqufppjbblfymwqmdi.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_l-aWCannGgN9IJfwFerTlg_XBr6GnhF';
+    const SUPABASE_TABLE = 'npi_checklist_state';
+    const SUPABASE_ROW_ID = 'default';
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+      : null;
 
     // Safari private browsing can reject localStorage writes. Fall back to
     // sessionStorage so edits still survive a refresh in the current tab.
@@ -1714,17 +1722,9 @@
         }
       }
 
-      // Keep local mutations (especially deletions) from being replaced by an
-      // older read-only remote snapshot when the page is refreshed.
-      if (!hasLocalChanges && syncMode === 'gist' && gistConfig.id) {
-        await pullFromGist(false);
-      }
-      // 2. Try GitHub Repo sync if active and configured
-      else if (!hasLocalChanges && syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
-        await pullFromGitHub(false);
-      }
-      // 3. Fallback seed data
-      else if (!hasValidLocalData) {
+      // Seed only when storage is missing or invalid. A valid [] is an
+      // intentional empty checklist and must not restore the starter tasks.
+      if (!hasValidLocalData) {
         try {
           const resp = await fetch('data/tasks.json');
           if (resp.ok) {
@@ -1735,6 +1735,8 @@
           console.log('Using default in-memory starter data', e);
         }
       }
+
+      await syncWithSupabase(false);
     }
 
     function saveToLocalStorage() {
@@ -1751,6 +1753,101 @@
         .catch(() => {})
         .then(() => syncPush());
       return saveQueue;
+    }
+
+    async function syncWithSupabase(showFeedback = true) {
+      if (!supabaseClient) return;
+
+      try {
+        const { data, error } = await supabaseClient
+          .from(SUPABASE_TABLE)
+          .select('tasks, updated_at')
+          .eq('id', SUPABASE_ROW_ID)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!data) {
+          await pushToSupabase(false);
+        } else if (Array.isArray(data.tasks)) {
+          const remoteUpdatedAt = new Date(data.updated_at || 0).getTime();
+          const localUpdatedAt = new Date(getStoredValue(LOCAL_CHANGE_KEY) || 0).getTime();
+
+          if (hasLocalChanges && localUpdatedAt > remoteUpdatedAt) {
+            await pushToSupabase(false);
+          } else {
+            tasks = data.tasks;
+            removeStoredValue(LOCAL_CHANGE_KEY);
+            hasLocalChanges = false;
+            saveToLocalStorage();
+            render();
+          }
+        }
+
+        subscribeToSupabase();
+      } catch (error) {
+        console.error('Supabase sync unavailable:', error);
+        if (showFeedback) showToast('Shared sync is unavailable. Changes are saved on this device.', 'error');
+      }
+    }
+
+    function subscribeToSupabase() {
+      if (!supabaseClient || window.npiSupabaseChannel) return;
+
+      window.npiSupabaseChannel = supabaseClient
+        .channel('npi-checklist-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: SUPABASE_TABLE, filter: `id=eq.${SUPABASE_ROW_ID}` },
+          (payload) => {
+            const remoteState = payload.new;
+            if (!remoteState || !Array.isArray(remoteState.tasks)) return;
+
+            const remoteUpdatedAt = new Date(remoteState.updated_at || 0).getTime();
+            const localUpdatedAt = new Date(getStoredValue(LOCAL_CHANGE_KEY) || 0).getTime();
+            if (hasLocalChanges && localUpdatedAt >= remoteUpdatedAt) return;
+
+            tasks = remoteState.tasks;
+            removeStoredValue(LOCAL_CHANGE_KEY);
+            hasLocalChanges = false;
+            saveToLocalStorage();
+            render();
+            showToast('Checklist updated from your team.', 'info');
+          }
+        )
+        .subscribe();
+    }
+
+    async function pushToSupabase(showFeedback = true) {
+      if (!supabaseClient) return false;
+
+      const mutationAtStart = getStoredValue(LOCAL_CHANGE_KEY);
+
+      const { error } = await supabaseClient
+        .from(SUPABASE_TABLE)
+        .upsert(
+          {
+            id: SUPABASE_ROW_ID,
+            tasks,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'id' }
+        );
+
+      if (error) {
+        console.error('Failed to save to Supabase:', error);
+        if (showFeedback) showToast('Shared sync failed. Changes remain saved on this device.', 'error');
+        return false;
+      }
+
+      // Do not clear a newer local mutation that happened while this request
+      // was in flight.
+      if (getStoredValue(LOCAL_CHANGE_KEY) === mutationAtStart) {
+        removeStoredValue(LOCAL_CHANGE_KEY);
+        hasLocalChanges = false;
+      }
+      if (showFeedback) showToast('Changes synced to your team.', 'success');
+      return true;
     }
 
     /* ==========================================================================
@@ -2037,7 +2134,9 @@
     }
 
     async function syncPush() {
-      if (syncMode === 'gist' && gistConfig.id && gistConfig.token) {
+      if (supabaseClient) {
+        await pushToSupabase(true);
+      } else if (syncMode === 'gist' && gistConfig.id && gistConfig.token) {
         await pushToGist();
       } else if (syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
         await pushToGitHub();
