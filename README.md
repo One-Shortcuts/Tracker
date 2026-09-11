@@ -1,6 +1,6 @@
 # NPI Setup Checklist (Setup 2026)
 
-A sleek, responsive NPI Setup Checklist built in pure HTML, CSS, and JavaScript. It saves every task change to the browser immediately and can optionally sync changes to GitHub for team collaboration.
+A sleek, responsive NPI Setup Checklist built in pure HTML, CSS, and JavaScript. It saves changes locally and syncs the shared checklist across team devices through Supabase realtime.
 
 ---
 
@@ -9,7 +9,7 @@ A sleek, responsive NPI Setup Checklist built in pure HTML, CSS, and JavaScript.
 | Column | Description | Key Features |
 | :--- | :--- | :--- |
 | **Task** | Name / Title of work item | Clickable for detailed edit view |
-| **Status** | Current state | `Not Started`, `In Progress`, `In Review`, `Done`, `Blocked` (1-click quick-cycle) |
+| **Status** | Current state | Dropdown options: `Not Started`, `In Progress`, `In Review`, `Done`, `Blocked` |
 | **Priority** | Urgency level | `Urgent` (Red), `High` (Orange), `Medium` (Blue), `Low` (Gray) |
 | **Description** | Detailed notes & instructions | Clickable description cell opens an instant editing modal for any teammate |
 | **Assignee** | Team member responsible | Auto-generated initials avatar + filter dropdown |
@@ -54,32 +54,22 @@ git push -u origin main
 
 ---
 
-## 👥 How Team Members Collaborate & Edit Descriptions (Using GitHub Gist)
+## 👥 Shared Team Sync (Supabase)
 
-The easiest and cleanest way to collaborate is with a **GitHub Gist**:
+The live checklist uses Supabase as its shared backend. Additions, edits, status changes, and deletions sync across team devices in realtime.
 
-### Step 1: Create & Connect Your Gist
-1. Open your live NPI Setup Checklist: `https://one-shortcuts.github.io/Tracker/`
-2. Configure the GitHub Gist connection in the deployment/backend configuration:
-   - Enter your [GitHub Personal Access Token](https://github.com/settings/tokens?type=beta) with the **`gist`** scope.
-   - Click **`+ Create New Gist From Current Tasks`**.
-   - Your Gist will be created instantly and the **Team Share Link** will appear!
+### One-time Supabase setup
 
-### Step 2: Share With Your Team
-1. Click **Copy** on the Team Share Link (it looks like `https://one-shortcuts.github.io/Tracker/?gist=YOUR_GIST_ID`).
-2. Send this URL to your teammates.
-3. **When teammates open the link**:
-   - The shared tasks load automatically.
-   - Teammates can enter their GitHub token (with `gist` scope) once to save edits.
-   - Clicking on any task's **Description** opens the editor to update notes, requirements, or progress. Any edit saves directly to the shared Gist!
+1. Open the Supabase SQL Editor for the project.
+2. Create a new query and paste the contents of [`supabase/schema.sql`](supabase/schema.sql).
+3. Click **Run**.
+4. Open the live tracker: `https://one-shortcuts.github.io/Tracker/`
 
----
+The SQL creates the shared state table, Row Level Security policies, and realtime publication. Team members do not need to configure sync settings in the tracker.
 
-### Alternative: GitHub Repository Sync
-If you prefer committing directly to the repo's `data/tasks.json`:
-1. Configure the **GitHub Repository** connection in the deployment/backend configuration.
-2. Provide a Personal Access Token with **Contents: Read and Write** permissions.
-3. Edits will commit directly to `data/tasks.json` on the `main` branch.
+### Security note
+
+The frontend uses a Supabase publishable key, which is intended for browser use. The included policies allow anyone with the tracker URL to read and edit the checklist. For a private team, add Supabase Authentication and restrict the policies to authenticated users. Never put a Supabase service-role key in the frontend.
 
 ---
 
@@ -91,7 +81,3 @@ If you prefer committing directly to the repo's `data/tasks.json`:
 - **CSV Export**: 1-click download of the complete NPI checklist into an Excel/Sheets-compatible CSV file.
 - **Light & Dark Theme**: Automatically adapts or toggles with persistent preference.
 - **Lightweight Frontend**: Vanilla HTML5, CSS3, and JavaScript with Supabase realtime sync.
-
-## 🔄 Shared Team Sync
-
-The checklist uses Supabase for shared cross-device storage and realtime updates. Run [`supabase/schema.sql`](supabase/schema.sql) once in the Supabase Dashboard SQL Editor to create the shared state table, security policies, and realtime publication. The client uses the Supabase publishable key, which is safe to expose in a browser; keep database policies restricted if the checklist should not be publicly editable.
