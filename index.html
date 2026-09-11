@@ -436,10 +436,26 @@
       border-color: #334155;
     }
 
-    /* Status Badges */
-    .status-badge {
+    /* Status Dropdown */
+    .status-select {
+      width: 100%;
+      min-width: 132px;
+      padding: 6px 8px;
+      border: 1px solid transparent;
+      border-radius: 9999px;
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: inherit;
       cursor: pointer;
-      position: relative;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .status-select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
     }
 
     .status-notstarted {
@@ -789,6 +805,134 @@
     @media (max-width: 600px) {
       .form-row {
         grid-template-columns: 1fr;
+      }
+    }
+
+    /* iPhone / narrow-screen layout */
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 16px 12px 28px;
+      }
+
+      header {
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .brand {
+        gap: 10px;
+      }
+
+      .brand-logo {
+        width: 38px;
+        height: 38px;
+      }
+
+      .brand-title h1 {
+        font-size: 1.12rem;
+        line-height: 1.25;
+      }
+
+      .header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 8px;
+      }
+
+      .header-actions .btn {
+        justify-content: center;
+        min-height: 40px;
+        padding: 9px 10px;
+      }
+
+      .header-actions .btn-icon-only {
+        width: 40px;
+        padding: 8px;
+      }
+
+      .controls-bar {
+        padding: 12px;
+        margin-bottom: 16px;
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .filters-left {
+        width: 100%;
+        min-width: 0;
+        gap: 8px;
+      }
+
+      .search-wrap {
+        min-width: 0;
+        max-width: none;
+        flex: 1 1 100%;
+      }
+
+      .select-filter {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+      }
+
+      #sortBy {
+        flex-basis: 100%;
+      }
+
+      .view-toggle {
+        width: 100%;
+      }
+
+      .view-btn {
+        flex: 1;
+        justify-content: center;
+      }
+
+      .table-container {
+        border-radius: var(--radius-md);
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table {
+        min-width: 860px;
+      }
+
+      th,
+      td {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .desc-preview {
+        max-width: 220px;
+      }
+
+      .kanban-container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .kanban-col {
+        min-height: 0;
+        padding: 12px;
+      }
+
+      .toast {
+        left: 12px;
+        right: 12px;
+        bottom: 14px;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .header-actions .btn {
+        font-size: 0.8rem;
+      }
+
+      .header-actions {
+        grid-template-columns: 1fr auto auto;
       }
     }
 
@@ -1846,6 +1990,9 @@
         // Status badge class
         const statusClass = `status-${(task.status || 'notstarted').toLowerCase().replace(/\s+/g, '')}`;
         const priorityClass = `priority-${(task.priority || 'medium').toLowerCase()}`;
+        const statusOptions = ['Not Started', 'In Progress', 'In Review', 'Done', 'Blocked']
+          .map(status => `<option value="${escapeHtml(status)}"${task.status === status ? ' selected' : ''}>${escapeHtml(status)}</option>`)
+          .join('');
 
         // Due date calculation
         const dueInfo = getDueDateInfo(task.dueDate, task.status);
@@ -1857,9 +2004,9 @@
             </div>
           </td>
           <td>
-            <span class="badge ${statusClass}" onclick="cycleStatus('${task.id}', event)" title="Click to quick-cycle status">
-              ● ${escapeHtml(task.status || 'Not Started')}
-            </span>
+            <select class="status-select ${statusClass}" data-task-id="${escapeHtml(task.id)}" aria-label="Status for ${escapeHtml(task.title || 'task')}" title="Change task status">
+              ${statusOptions}
+            </select>
           </td>
           <td>
             <span class="badge ${priorityClass}">
@@ -2048,20 +2195,19 @@
       await savePromise;
     }
 
-    // Quick cycle status
-    async function cycleStatus(id, e) {
-      e.stopPropagation();
-      const statusFlow = ['Not Started', 'In Progress', 'In Review', 'Done'];
+    // Update status directly from the table dropdown.
+    async function updateTaskStatus(id, status) {
+      const allowedStatuses = ['Not Started', 'In Progress', 'In Review', 'Done', 'Blocked'];
+      if (!allowedStatuses.includes(status)) return;
       const task = tasks.find(t => t.id === id);
       if (!task) return;
 
-      const currentIndex = statusFlow.indexOf(task.status);
-      const nextStatus = statusFlow[(currentIndex + 1) % statusFlow.length];
-      task.status = nextStatus;
+      task.status = status;
       task.updatedAt = new Date().toISOString();
 
       const savePromise = persistChanges();
       render();
+      showToast('Status updated!', 'success');
       await savePromise;
     }
 
@@ -2317,6 +2463,13 @@
       closeDescModalBtn.addEventListener('click', () => descModal.style.display = 'none');
       cancelDescModalBtn.addEventListener('click', () => descModal.style.display = 'none');
       saveQuickDescBtn.addEventListener('click', saveQuickDescription);
+
+      // Inline table status dropdowns
+      tasksTableBody.addEventListener('change', (e) => {
+        if (e.target.matches('.status-select')) {
+          updateTaskStatus(e.target.dataset.taskId, e.target.value);
+        }
+      });
 
       // Sync Modal (kept hidden from the end-user UI; sync runs automatically)
       closeSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
