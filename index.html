@@ -1188,14 +1188,9 @@
       </div>
 
       <div class="header-actions">
-        <!-- Share Link Button -->
-        <button class="btn btn-outline" id="headerShareBtn" title="Copy Team Share URL" style="display: none;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-          </svg>
-          Share Link
-        </button>
+        <button class="btn btn-outline" id="openSyncBtn">Google Sheets</button>
+        <button class="btn btn-outline" id="refreshSyncBtn">Sync now</button>
+        <span id="syncStatus" role="status" style="font-size: 0.8rem;">Google Sheets not connected</span>
 
         <!-- Export/Import Buttons -->
         <button class="btn btn-outline" id="exportCsvBtn" title="Export current tasks to CSV">
@@ -1439,98 +1434,29 @@
     </div>
   </div>
 
-  <!-- GitHub / Gist Sync Configuration Modal -->
+  <!-- Google Sheets connection -->
   <div class="modal-backdrop" id="syncModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Team Sync Settings</h2>
+        <h2>Connect Google Sheets</h2>
         <button class="modal-close-btn" id="closeSyncModalBtn">&times;</button>
       </div>
-      <div class="modal-body">
-        <!-- Mode Tabs -->
-        <div class="sync-tabs">
-          <button type="button" class="sync-tab-btn active" id="tabGistBtn">GitHub Gist (Easiest)</button>
-          <button type="button" class="sync-tab-btn" id="tabRepoBtn">GitHub Repository</button>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <p>Keep your checklist in a private Google Sheet shared with your team. Sign in with an account that can edit it.</p>
+        <div class="form-group">
+          <label for="sheetsUrlInput">Spreadsheet link</label>
+          <input id="sheetsUrlInput" class="form-control" placeholder="https://docs.google.com/spreadsheets/d/.../edit" />
         </div>
-
-        <!-- Tab 1: GitHub Gist -->
-        <div id="tabGistContent" style="display: flex; flex-direction: column; gap: 16px;">
-          <p style="font-size: 0.85rem; color: var(--text-muted);">
-            Store and sync tasks in real time using a <strong>GitHub Gist</strong>. Team members can view and edit synchronously with zero git merge conflicts.
-          </p>
-
-          <div class="form-group">
-            <label for="gistIdInput">Gist ID or URL</label>
-            <input type="text" id="gistIdInput" class="form-control" placeholder="e.g. 7f3b890a12... or https://gist.github.com/..." />
-          </div>
-
-          <div class="form-group">
-            <label for="gistTokenInput">GitHub Personal Access Token (PAT)</label>
-            <input type="password" id="gistTokenInput" class="form-control" placeholder="ghp_... or github_pat_..." />
-            <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 2px;">
-              Requires only the lightweight <strong>gist</strong> permission scope. Stored safely in your local browser.
-            </span>
-          </div>
-
-          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <button type="button" class="btn btn-outline btn-sm" id="createGistBtn">
-              + Create New Gist From Current Tasks
-            </button>
-          </div>
-
-          <!-- Share Link Box -->
-          <div class="share-box" id="gistShareBox" style="display: none;">
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--success-text);">
-              🔗 Team Share Link (Loads live tasks automatically):
-            </span>
-            <div class="share-link-row">
-              <input type="text" id="shareUrlInput" class="form-control share-link-input" readonly />
-              <button type="button" class="btn btn-outline btn-sm" id="copyModalShareBtn">Copy</button>
-            </div>
-          </div>
+        <div class="form-group">
+          <label for="googleClientInput">Google OAuth client ID</label>
+          <input id="googleClientInput" class="form-control" placeholder="...apps.googleusercontent.com" />
         </div>
-
-        <!-- Tab 2: GitHub Repository -->
-        <div id="tabRepoContent" style="display: none; flex-direction: column; gap: 16px;">
-          <p style="font-size: 0.85rem; color: var(--text-muted);">
-            Commit task edits directly to <code>data/tasks.json</code> in your repository.
-          </p>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="ghOwner">Repo Owner / Org</label>
-              <input type="text" id="ghOwner" class="form-control" value="One-Shortcuts" placeholder="e.g. One-Shortcuts" />
-            </div>
-            <div class="form-group">
-              <label for="ghRepo">Repository Name</label>
-              <input type="text" id="ghRepo" class="form-control" value="Tracker" placeholder="e.g. Tracker" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="ghBranch">Branch</label>
-              <input type="text" id="ghBranch" class="form-control" value="main" />
-            </div>
-            <div class="form-group">
-              <label for="ghPath">Data File Path</label>
-              <input type="text" id="ghPath" class="form-control" value="data/tasks.json" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="ghToken">Personal Access Token (PAT)</label>
-            <input type="password" id="ghToken" class="form-control" placeholder="github_pat_... or ghp_..." />
-            <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 2px;">
-              Requires fine-grained token with <strong>Contents: Read and Write</strong> permissions for this repository.
-            </span>
-          </div>
-        </div>
+        <p style="font-size: 0.85rem;">First time? Follow <a href="GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener">the setup guide</a>. Your sheet needs a TaskHistory tab. Changes sync every 30 seconds while connected.</p>
+        <p id="syncDetails" role="status" style="font-size: 0.85rem;"></p>
       </div>
-
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" id="disconnectSyncBtn">Disconnect</button>
-        <button type="button" class="btn btn-primary" id="saveSyncBtn">Connect & Sync</button>
+        <button type="button" class="btn btn-primary" id="saveSyncBtn">Connect Google</button>
       </div>
     </div>
   </div>
@@ -1540,24 +1466,19 @@
     <span id="toastMessage">Notification message</span>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/google-sheets.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     /* ==========================================================================
        NPI Setup Checklist Application Logic
        ========================================================================== */
-    const STORAGE_KEY = 'npi_setup_checklist_tasks_v1';
-    const LEGACY_STORAGE_KEY = 'project_tracker_tasks_v1';
-    const LOCAL_CHANGE_KEY = 'npi_setup_checklist_last_local_change_v1';
-    const GITHUB_CONFIG_KEY = 'project_tracker_gh_config_v1';
-    const GIST_CONFIG_KEY = 'project_tracker_gist_config_v1';
-    const SYNC_MODE_KEY = 'project_tracker_sync_mode_v1';
-    const SUPABASE_URL = 'https://mxyqufppjbblfymwqmdi.supabase.co';
-    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_l-aWCannGgN9IJfwFerTlg_XBr6GnhF';
-    const SUPABASE_TABLE = 'npi_checklist_state';
-    const SUPABASE_ROW_ID = 'default';
-    const supabaseClient = window.supabase
-      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
-      : null;
+    const GOOGLE_CONFIG_KEY = 'npi_google_sheets_config_v1';
+    const DEFAULT_SPREADSHEET_ID = '1SyJ5-TLBAC-lIKfJvBVxkzKoHNltD-DilKiYvsmWMRM';
+    const DEFAULT_GOOGLE_CLIENT_ID = '316499487482-m4h8t1bs5bc3f6m07sj608omc4evj6on.apps.googleusercontent.com';
+    let sheetsConfig = {};
+    let sheetsStore = null;
+    let connecting = false;
+    let connectionGeneration = 0;
 
     // Safari private browsing can reject localStorage writes. Fall back to
     // sessionStorage so edits still survive a refresh in the current tab.
@@ -1598,25 +1519,6 @@
     let currentFilterAssignee = 'ALL';
     let currentSort = 'due-asc';
     let searchQuery = '';
-    let ghFileSha = null;
-    let saveQueue = Promise.resolve();
-    let hasLocalChanges = false;
-
-    let syncMode = getStoredValue(SYNC_MODE_KEY) || 'gist'; // 'gist' | 'repo'
-
-    let gistConfig = {
-      id: '',
-      token: ''
-    };
-
-    let ghConfig = {
-      owner: 'One-Shortcuts',
-      repo: 'Tracker',
-      branch: 'main',
-      path: 'data/tasks.json',
-      token: ''
-    };
-
     // Priority Order Map
     const priorityWeights = { 'Urgent': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
 
@@ -1669,28 +1571,10 @@
     const closeSyncModalBtn = document.getElementById('closeSyncModalBtn');
     const saveSyncBtn = document.getElementById('saveSyncBtn');
     const disconnectSyncBtn = document.getElementById('disconnectSyncBtn');
-    const headerShareBtn = document.getElementById('headerShareBtn');
-
-    // Tabs
-    const tabGistBtn = document.getElementById('tabGistBtn');
-    const tabRepoBtn = document.getElementById('tabRepoBtn');
-    const tabGistContent = document.getElementById('tabGistContent');
-    const tabRepoContent = document.getElementById('tabRepoContent');
-
-    // Gist Inputs
-    const gistIdInput = document.getElementById('gistIdInput');
-    const gistTokenInput = document.getElementById('gistTokenInput');
-    const createGistBtn = document.getElementById('createGistBtn');
-    const gistShareBox = document.getElementById('gistShareBox');
-    const shareUrlInput = document.getElementById('shareUrlInput');
-    const copyModalShareBtn = document.getElementById('copyModalShareBtn');
-
-    // Repo Inputs
-    const ghOwnerInput = document.getElementById('ghOwner');
-    const ghRepoInput = document.getElementById('ghRepo');
-    const ghBranchInput = document.getElementById('ghBranch');
-    const ghPathInput = document.getElementById('ghPath');
-    const ghTokenInput = document.getElementById('ghToken');
+    const sheetsUrlInput = document.getElementById('sheetsUrlInput');
+    const googleClientInput = document.getElementById('googleClientInput');
+    const syncStatus = document.getElementById('syncStatus');
+    const syncDetails = document.getElementById('syncDetails');
 
     // Toast
     const toast = document.getElementById('toast');
@@ -1703,458 +1587,95 @@
     /* ==========================================================================
        Initialization
        ========================================================================== */
-    async function init() {
+    const sheetStorage = {
+      getItem: getStoredValue,
+      setItem(key, value) {
+        try {
+          window.localStorage.setItem(key, value);
+          // Avoid an older fallback masking future reads after storage recovers.
+          try { window.sessionStorage.removeItem(key); } catch (_) {}
+        } catch (_) {
+          throw new Error('Browser storage is unavailable. Export your checklist before closing this tab.');
+        }
+      }
+    };
+
+    function setSyncStatus(message) {
+      syncStatus.textContent = message;
+      syncDetails.textContent = message;
+    }
+
+    function loadSheetStore(config) {
+      sheetsStore = new TrackerSheets.Store({ spreadsheetId: config.spreadsheetId, storage: sheetStorage });
+      tasks = structuredClone(sheetsStore.state.tasks);
+    }
+
+    function init() {
       loadTheme();
-      loadGistConfig();
-      loadGitHubConfig();
-      switchSyncTab(syncMode);
-      await loadInitialData();
       setupEventListeners();
-      render();
-    }
-
-    async function loadInitialData() {
-      const localData = getStoredValue(STORAGE_KEY) || getStoredValue(LEGACY_STORAGE_KEY);
-      hasLocalChanges = Boolean(getStoredValue(LOCAL_CHANGE_KEY));
-      let hasValidLocalData = false;
-      if (localData) {
-        try {
-          const parsedLocalData = JSON.parse(localData);
-          if (Array.isArray(parsedLocalData)) {
-            tasks = parsedLocalData;
-            hasValidLocalData = true;
-          }
-        } catch (e) {
-          console.error('Failed to parse local storage tasks', e);
-        }
-      }
-
-      // Seed only when storage is missing or invalid. A valid [] is an
-      // intentional empty checklist and must not restore the starter tasks.
-      if (!hasValidLocalData) {
-        try {
-          const resp = await fetch('data/tasks.json');
-          if (resp.ok) {
-            tasks = await resp.json();
-            saveToLocalStorage();
-          }
-        } catch (e) {
-          console.log('Using default in-memory starter data', e);
-        }
-      }
-
-      await syncWithSupabase(false);
-    }
-
-    function saveToLocalStorage() {
-      setStoredValue(STORAGE_KEY, JSON.stringify(tasks));
-    }
-
-    // Save locally first, then serialize remote writes so rapid edits cannot overwrite
-    // a newer change with an older in-flight request.
-    function persistChanges() {
-      setStoredValue(LOCAL_CHANGE_KEY, new Date().toISOString());
-      hasLocalChanges = true;
-      saveToLocalStorage();
-      saveQueue = saveQueue
-        .catch(() => {})
-        .then(() => syncPush());
-      return saveQueue;
-    }
-
-    async function syncWithSupabase(showFeedback = true) {
-      if (!supabaseClient) return;
-
       try {
-        const { data, error } = await supabaseClient
-          .from(SUPABASE_TABLE)
-          .select('tasks, updated_at')
-          .eq('id', SUPABASE_ROW_ID)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (!data) {
-          await pushToSupabase(false);
-        } else if (Array.isArray(data.tasks)) {
-          const remoteUpdatedAt = new Date(data.updated_at || 0).getTime();
-          const localUpdatedAt = new Date(getStoredValue(LOCAL_CHANGE_KEY) || 0).getTime();
-
-          if (hasLocalChanges && localUpdatedAt > remoteUpdatedAt) {
-            await pushToSupabase(false);
-          } else {
-            tasks = data.tasks;
-            removeStoredValue(LOCAL_CHANGE_KEY);
-            hasLocalChanges = false;
-            saveToLocalStorage();
-            render();
-          }
+        sheetsConfig = JSON.parse(getStoredValue(GOOGLE_CONFIG_KEY) || '{}');
+        if (sheetsConfig.spreadsheetId) {
+          loadSheetStore(sheetsConfig);
+          setSyncStatus('Connect Google to sync' + (sheetsStore.state.pending.length ? ' — pending changes on this device' : ''));
         }
-
-        subscribeToSupabase();
       } catch (error) {
-        console.error('Supabase sync unavailable:', error);
-        if (showFeedback) showToast('Shared sync is unavailable. Changes are saved on this device.', 'error');
+        setSyncStatus(error.message);
       }
+      render();
+      setInterval(() => {
+        if (!document.hidden && sheetsStore?.token) syncSheets(false);
+      }, 30000);
+      window.addEventListener('online', () => { if (sheetsStore?.token) syncSheets(false); });
     }
 
-    function subscribeToSupabase() {
-      if (!supabaseClient || window.npiSupabaseChannel) return;
-
-      window.npiSupabaseChannel = supabaseClient
-        .channel('npi-checklist-realtime')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: SUPABASE_TABLE, filter: `id=eq.${SUPABASE_ROW_ID}` },
-          (payload) => {
-            const remoteState = payload.new;
-            if (!remoteState || !Array.isArray(remoteState.tasks)) return;
-
-            const remoteUpdatedAt = new Date(remoteState.updated_at || 0).getTime();
-            const localUpdatedAt = new Date(getStoredValue(LOCAL_CHANGE_KEY) || 0).getTime();
-            if (hasLocalChanges && localUpdatedAt >= remoteUpdatedAt) return;
-
-            tasks = remoteState.tasks;
-            removeStoredValue(LOCAL_CHANGE_KEY);
-            hasLocalChanges = false;
-            saveToLocalStorage();
-            render();
-            showToast('Checklist updated from your team.', 'info');
-          }
-        )
-        .subscribe();
+    function requireSheet() {
+      if (sheetsStore) return true;
+      openSyncModal();
+      showToast('Connect a Google Sheet before adding tasks.', 'info');
+      return false;
     }
 
-    async function pushToSupabase(showFeedback = true) {
-      if (!supabaseClient) return false;
-
-      const mutationAtStart = getStoredValue(LOCAL_CHANGE_KEY);
-
-      const { error } = await supabaseClient
-        .from(SUPABASE_TABLE)
-        .upsert(
-          {
-            id: SUPABASE_ROW_ID,
-            tasks,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'id' }
-        );
-
-      if (error) {
-        console.error('Failed to save to Supabase:', error);
-        if (showFeedback) showToast('Shared sync failed. Changes remain saved on this device.', 'error');
-        return false;
-      }
-
-      // Do not clear a newer local mutation that happened while this request
-      // was in flight.
-      if (getStoredValue(LOCAL_CHANGE_KEY) === mutationAtStart) {
-        removeStoredValue(LOCAL_CHANGE_KEY);
-        hasLocalChanges = false;
-      }
-      if (showFeedback) showToast('Changes synced to your team.', 'success');
-      return true;
-    }
-
-    /* ==========================================================================
-       Gist & GitHub Sync Integrations
-       ========================================================================== */
-    function cleanGistId(input) {
-      if (!input) return '';
-      input = input.trim();
-      if (input.includes('/')) {
-        return input.split('/').filter(Boolean).pop();
-      }
-      return input;
-    }
-
-    function getShareUrl() {
-      if (!gistConfig.id) return '';
-      const baseUrl = window.location.origin + window.location.pathname;
-      return `${baseUrl}?gist=${cleanGistId(gistConfig.id)}`;
-    }
-
-    function updateGistShareBox() {
-      if (gistConfig.id) {
-        gistShareBox.style.display = 'flex';
-        shareUrlInput.value = getShareUrl();
-        headerShareBtn.style.display = 'inline-flex';
-      } else {
-        gistShareBox.style.display = 'none';
-        headerShareBtn.style.display = 'none';
-      }
-    }
-
-    function loadGistConfig() {
-      const saved = getStoredValue(GIST_CONFIG_KEY);
-      if (saved) {
-        try {
-          gistConfig = JSON.parse(saved);
-        } catch (e) {}
-      }
-
-      // Check URL param ?gist=...
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlGist = urlParams.get('gist');
-      if (urlGist) {
-        gistConfig.id = cleanGistId(urlGist);
-        syncMode = 'gist';
-        saveGistConfig();
-      }
-
-      gistIdInput.value = gistConfig.id || '';
-      gistTokenInput.value = gistConfig.token || '';
-      updateGistShareBox();
-    }
-
-    function saveGistConfig() {
-      setStoredValue(GIST_CONFIG_KEY, JSON.stringify(gistConfig));
-      setStoredValue(SYNC_MODE_KEY, syncMode);
-    }
-
-    function switchSyncTab(mode) {
-      syncMode = mode;
-      setStoredValue(SYNC_MODE_KEY, mode);
-      if (mode === 'gist') {
-        tabGistBtn.classList.add('active');
-        tabRepoBtn.classList.remove('active');
-        tabGistContent.style.display = 'flex';
-        tabRepoContent.style.display = 'none';
-      } else {
-        tabRepoBtn.classList.add('active');
-        tabGistBtn.classList.remove('active');
-        tabRepoContent.style.display = 'flex';
-        tabGistContent.style.display = 'none';
-      }
-    }
-
-    async function pullFromGist(showFeedback = true) {
-      if (!gistConfig.id) return;
-      const id = cleanGistId(gistConfig.id);
+    async function persistChanges() {
+      if (!sheetsStore) return;
       try {
-        const headers = { 'Accept': 'application/vnd.github.v3+json' };
-        if (gistConfig.token) {
-          headers['Authorization'] = `Bearer ${gistConfig.token}`;
-        }
-        const res = await fetch(`https://api.github.com/gists/${id}`, { headers });
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-
-        const data = await res.json();
-        let tasksContent = null;
-        if (data.files) {
-          if (data.files['tasks.json'] && data.files['tasks.json'].content) {
-            tasksContent = data.files['tasks.json'].content;
-          } else {
-            const jsonFile = Object.values(data.files).find(f => f.filename && f.filename.endsWith('.json') && f.content);
-            if (jsonFile) tasksContent = jsonFile.content;
-          }
-        }
-
-        if (tasksContent) {
-          const parsed = JSON.parse(tasksContent);
-          if (Array.isArray(parsed)) {
-            tasks = parsed;
-            saveToLocalStorage();
-            render();
-            if (showFeedback) showToast('Loaded latest tasks from GitHub Gist!', 'success');
-          }
-        }
-      } catch (err) {
-        console.error('Error pulling from Gist:', err);
-        if (showFeedback) showToast(`Gist Sync failed: ${err.message}`, 'error');
-      }
-    }
-
-    async function pushToGist() {
-      if (!gistConfig.id || !gistConfig.token) {
-        saveToLocalStorage();
+        sheetsStore.edit(tasks);
+      } catch (error) {
+        // Revert an edit that could not be saved; never claim it is durable.
+        tasks = structuredClone(sheetsStore.state.tasks);
+        render();
+        setSyncStatus(error.message);
+        showToast(error.message, 'error');
         return;
       }
-      const id = cleanGistId(gistConfig.id);
-      try {
-        const res = await fetch(`https://api.github.com/gists/${id}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${gistConfig.token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          body: JSON.stringify({
-            description: 'NPI Setup Checklist Data (Setup 2026)',
-            files: {
-              'tasks.json': {
-                content: JSON.stringify(tasks, null, 2)
-              }
-            }
-          })
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        showToast('Saved & synced to GitHub Gist!', 'success');
-      } catch (err) {
-        console.error('Failed to sync to Gist:', err);
-        showToast(`Failed to sync to Gist: ${err.message}`, 'error');
-      }
-    }
-
-    async function createNewGist() {
-      const token = (gistTokenInput.value || gistConfig.token || '').trim();
-      if (!token) {
-        showToast('Please enter your GitHub Token below first with "gist" scope.', 'error');
-        gistTokenInput.focus();
+      if (!sheetsStore.token) {
+        setSyncStatus('Saved on this device — connect Google to sync');
         return;
       }
-      gistConfig.token = token;
-      try {
-        const res = await fetch('https://api.github.com/gists', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          body: JSON.stringify({
-            description: 'NPI Setup Checklist - Setup 2026',
-            public: true,
-            files: {
-              'tasks.json': {
-                content: JSON.stringify(tasks, null, 2)
-              }
-            }
-          })
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        gistConfig.id = data.id;
-        gistIdInput.value = data.id;
-        syncMode = 'gist';
-        saveGistConfig();
-        updateGistShareBox();
-        showToast('Created new GitHub Gist! Share link ready.', 'success');
-      } catch (err) {
-        console.error('Failed to create Gist:', err);
-        showToast(`Could not create Gist: ${err.message}`, 'error');
-      }
+      await syncSheets(true);
     }
 
-    function loadGitHubConfig() {
-      const savedConfig = getStoredValue(GITHUB_CONFIG_KEY);
-      if (savedConfig) {
-        try {
-          ghConfig = JSON.parse(savedConfig);
-        } catch (e) {}
-      }
-      ghOwnerInput.value = ghConfig.owner || 'One-Shortcuts';
-      ghRepoInput.value = ghConfig.repo || 'Tracker';
-      ghBranchInput.value = ghConfig.branch || 'main';
-      ghPathInput.value = ghConfig.path || 'data/tasks.json';
-      ghTokenInput.value = ghConfig.token || '';
-      ghConfig.owner = ghOwnerInput.value;
-      ghConfig.repo = ghRepoInput.value;
-      ghConfig.branch = ghBranchInput.value;
-      ghConfig.path = ghPathInput.value;
-    }
-
-    async function pullFromGitHub(showFeedback = true) {
-      if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) return;
-
-      const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}?ref=${ghConfig.branch}`;
-
-      try {
-        const res = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${ghConfig.token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
-
-        if (!res.ok) {
-          throw new Error(`GitHub API Error: ${res.status} ${res.statusText}`);
-        }
-
-        const data = await res.json();
-        ghFileSha = data.sha;
-        const decodedContent = decodeURIComponent(escape(atob(data.content)));
-        const remoteTasks = JSON.parse(decodedContent);
-
-        if (Array.isArray(remoteTasks)) {
-          tasks = remoteTasks;
-          saveToLocalStorage();
-          render();
-          if (showFeedback) showToast('Successfully pulled latest tasks from GitHub!', 'success');
-        }
-      } catch (err) {
-        console.error('Error pulling from GitHub:', err);
-        if (showFeedback) showToast(`GitHub Sync failed: ${err.message}`, 'error');
-      }
-    }
-
-    async function pushToGitHub() {
-      if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) {
-        saveToLocalStorage();
+    async function syncSheets(feedback = true) {
+      const store = sheetsStore;
+      if (!store?.token) {
+        if (feedback) openSyncModal();
         return;
       }
-
-      const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}`;
-      const jsonString = JSON.stringify(tasks, null, 2);
-      const encodedContent = btoa(unescape(encodeURIComponent(jsonString)));
-
-      const bodyPayload = {
-        message: `Update tasks data [skip ci]`,
-        content: encodedContent,
-        branch: ghConfig.branch || 'main'
-      };
-
-      if (ghFileSha) {
-        bodyPayload.sha = ghFileSha;
-      }
-
       try {
-        const res = await fetch(url, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${ghConfig.token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          body: JSON.stringify(bodyPayload)
-        });
-
-        if (!res.ok) {
-          if (res.status === 409) {
-            await pullFromGitHub(false);
-            showToast('Concurrent edit detected: Refreshed with latest GitHub changes. Please check and save again.', 'error');
-            return;
-          }
-          throw new Error(`GitHub Commit Error: ${res.status}`);
-        }
-
-        const resData = await res.json();
-        ghFileSha = resData.content ? resData.content.sha : null;
-        showToast('Changes committed & synced to GitHub!', 'success');
-      } catch (err) {
-        console.error('Failed to commit to GitHub:', err);
-        showToast(`Commit to GitHub failed: ${err.message}`, 'error');
+        setSyncStatus('Syncing with Google Sheets…');
+        await store.sync();
+        if (store !== sheetsStore) return;
+        tasks = structuredClone(store.state.tasks);
+        render();
+        setSyncStatus(store.state.pending.length ? 'Changes pending — sync again to finish' : 'Saved to Google Sheets');
+      } catch (error) {
+        if (store !== sheetsStore) return;
+        setSyncStatus(error.message);
+        if (feedback) showToast(error.message, 'error');
       }
     }
 
-    async function syncPush() {
-      if (supabaseClient) {
-        await pushToSupabase(true);
-      } else if (syncMode === 'gist' && gistConfig.id && gistConfig.token) {
-        await pushToGist();
-      } else if (syncMode === 'repo' && ghConfig.owner && ghConfig.repo && ghConfig.token) {
-        await pushToGitHub();
-      } else {
-        saveToLocalStorage();
-      }
-    }
-
-    /* ==========================================================================
-       Rendering & Filtering
-       ========================================================================== */
+    /* Task views */
     function getFilteredTasks() {
       let filtered = tasks.filter(task => {
         // Status filter
@@ -2387,6 +1908,7 @@
        Task CRUD Actions
        ========================================================================== */
     function openAddTaskModal() {
+      if (!requireSheet()) return;
       modalTitle.textContent = 'Create New Task';
       taskIdInput.value = '';
       taskTitleInput.value = '';
@@ -2421,6 +1943,7 @@
 
     async function handleTaskFormSubmit(e) {
       e.preventDefault();
+      if (!requireSheet()) return;
       const id = taskIdInput.value;
       const title = taskTitleInput.value.trim();
       if (!title) return;
@@ -2440,16 +1963,14 @@
         const index = tasks.findIndex(t => t.id === id);
         if (index !== -1) {
           tasks[index] = { ...tasks[index], ...payload };
-          showToast('Task updated!', 'success');
         }
       } else {
         // Create new task
         const newTask = {
-          id: 'task-' + Date.now(),
+          id: 'task-' + crypto.randomUUID(),
           ...payload
         };
         tasks.unshift(newTask);
-        showToast('New task added!', 'success');
       }
 
       taskModal.style.display = 'none';
@@ -2465,7 +1986,6 @@
       tasks = tasks.filter(t => t.id !== id);
       const savePromise = persistChanges();
       render();
-      showToast('Task deleted', 'success');
       await savePromise;
     }
 
@@ -2481,7 +2001,6 @@
 
       const savePromise = persistChanges();
       render();
-      showToast('Status updated!', 'success');
       await savePromise;
     }
 
@@ -2510,84 +2029,89 @@
       descModal.style.display = 'none';
       const savePromise = persistChanges();
       render();
-      showToast('Description saved!', 'success');
       await savePromise;
     }
 
     /* ==========================================================================
-       GitHub / Gist Sync Modal Logic
+       Google Sheets connection
        ========================================================================== */
     function openSyncModal() {
-      switchSyncTab(syncMode);
-      updateGistShareBox();
+      sheetsUrlInput.value = sheetsConfig.spreadsheetId ? 'https://docs.google.com/spreadsheets/d/' + sheetsConfig.spreadsheetId + '/edit' : 'https://docs.google.com/spreadsheets/d/' + DEFAULT_SPREADSHEET_ID + '/edit';
+      googleClientInput.value = sheetsConfig.clientId || DEFAULT_GOOGLE_CLIENT_ID;
       syncModal.style.display = 'flex';
     }
 
-    async function saveSyncSettings() {
-      if (syncMode === 'gist') {
-        const id = cleanGistId(gistIdInput.value);
-        const token = gistTokenInput.value.trim();
-        gistConfig.id = id;
-        gistConfig.token = token;
-        saveGistConfig();
-        updateGistShareBox();
-        syncModal.style.display = 'none';
-
-        if (gistConfig.id) {
-          showToast('Syncing with GitHub Gist...', 'info');
-          await pullFromGist(true);
-        } else {
-          showToast('Settings saved in offline mode.', 'info');
-        }
-      } else {
-        ghConfig.owner = ghOwnerInput.value.trim();
-        ghConfig.repo = ghRepoInput.value.trim();
-        ghConfig.branch = ghBranchInput.value.trim() || 'main';
-        ghConfig.path = ghPathInput.value.trim() || 'data/tasks.json';
-        ghConfig.token = ghTokenInput.value.trim();
-
-        setStoredValue(GITHUB_CONFIG_KEY, JSON.stringify(ghConfig));
-        setStoredValue(SYNC_MODE_KEY, 'repo');
-        syncModal.style.display = 'none';
-
-        if (ghConfig.owner && ghConfig.repo && ghConfig.token) {
-          showToast('Testing GitHub repo sync...', 'info');
-          await pullFromGitHub(true);
-        } else {
-          showToast('Settings saved in offline mode.', 'info');
-        }
-      }
-    }
-
-    function disconnectSync() {
-      if (syncMode === 'gist') {
-        gistConfig = { id: '', token: '' };
-        removeStoredValue(GIST_CONFIG_KEY);
-        gistIdInput.value = '';
-        gistTokenInput.value = '';
-        updateGistShareBox();
-      } else {
-        ghConfig = { owner: '', repo: '', branch: 'main', path: 'data/tasks.json', token: '' };
-        removeStoredValue(GITHUB_CONFIG_KEY);
-        ghOwnerInput.value = '';
-        ghRepoInput.value = '';
-        ghTokenInput.value = '';
-      }
-      syncModal.style.display = 'none';
-      showToast('Sync disconnected. Now in Local Mode.', 'info');
-    }
-
-    function copyShareLink() {
-      const url = getShareUrl();
-      if (!url) {
-        showToast('No Gist connected yet.', 'error');
+    function saveSyncSettings() {
+      if (connecting || sheetsStore?.running) return;
+      const input = sheetsUrlInput.value.trim();
+      const spreadsheetId = input.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1]
+        || (/^[a-zA-Z0-9_-]+$/.test(input) ? input : '');
+      const clientId = googleClientInput.value.trim();
+      if (!spreadsheetId || !clientId.endsWith('.apps.googleusercontent.com')) {
+        showToast('Enter a spreadsheet link and a Google OAuth client ID.', 'error');
         return;
       }
-      navigator.clipboard.writeText(url).then(() => {
-        showToast('Team share link copied to clipboard!', 'success');
-      }).catch(() => {
-        prompt('Copy this link for your team:', url);
-      });
+      if (!window.google?.accounts?.oauth2) {
+        showToast('Google sign-in has not loaded. Check your connection and try again.', 'error');
+        return;
+      }
+      if (sheetsStore?.state.pending.length && spreadsheetId !== sheetsConfig.spreadsheetId) {
+        showToast('Sync pending changes to the current sheet before switching sheets.', 'error');
+        return;
+      }
+      try {
+        const nextConfig = { spreadsheetId, clientId };
+        if (spreadsheetId !== sheetsConfig.spreadsheetId || !sheetsStore) loadSheetStore(nextConfig);
+        sheetStorage.setItem(GOOGLE_CONFIG_KEY, JSON.stringify(nextConfig));
+        sheetsConfig = nextConfig;
+        render();
+        connecting = true;
+        saveSyncBtn.disabled = true;
+        const generation = ++connectionGeneration;
+        const finish = () => { connecting = false; saveSyncBtn.disabled = false; };
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/spreadsheets',
+          callback: async (response) => {
+            if (generation !== connectionGeneration) return;
+            finish();
+            if (response.error || !response.access_token) {
+              setSyncStatus('Google connection was not authorized. Try connecting again.');
+              return;
+            }
+            sheetsStore.token = response.access_token;
+            syncModal.style.display = 'none';
+            await syncSheets(true);
+          },
+          error_callback: () => {
+            if (generation !== connectionGeneration) return;
+            finish();
+            setSyncStatus('Google sign-in was closed or blocked. Try connecting again.');
+          }
+        });
+        tokenClient.requestAccessToken({ prompt: '' });
+      } catch (error) {
+        connecting = false;
+        saveSyncBtn.disabled = false;
+        setSyncStatus(error.message);
+        showToast(error.message, 'error');
+      }
+    }
+
+    async function disconnectSync() {
+      ++connectionGeneration;
+      connecting = false;
+      saveSyncBtn.disabled = false;
+      const store = sheetsStore;
+      const token = store?.token;
+      if (store) store.token = '';
+      // An already submitted write may finish; retain its outbox until reconciled.
+      if (store?.running) {
+        try { await store.running; } catch (_) {}
+      }
+      if (token) google.accounts.oauth2.revoke(token, () => {});
+      setSyncStatus('Disconnected — changes remain on this device');
+      syncModal.style.display = 'none';
     }
 
     /* ==========================================================================
@@ -2745,17 +2269,11 @@
         }
       });
 
-      // Sync Modal (kept hidden from the end-user UI; sync runs automatically)
+      document.getElementById('openSyncBtn').addEventListener('click', openSyncModal);
+      document.getElementById('refreshSyncBtn').addEventListener('click', () => syncSheets(true));
       closeSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
       saveSyncBtn.addEventListener('click', saveSyncSettings);
       disconnectSyncBtn.addEventListener('click', disconnectSync);
-
-      // Sync Tabs & Gist Actions
-      tabGistBtn.addEventListener('click', () => switchSyncTab('gist'));
-      tabRepoBtn.addEventListener('click', () => switchSyncTab('repo'));
-      createGistBtn.addEventListener('click', createNewGist);
-      headerShareBtn.addEventListener('click', copyShareLink);
-      copyModalShareBtn.addEventListener('click', copyShareLink);
 
       // General Actions
       themeToggleBtn.addEventListener('click', toggleTheme);

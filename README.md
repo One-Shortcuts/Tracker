@@ -1,6 +1,6 @@
 # NPI Setup Checklist (Setup 2026)
 
-A sleek, responsive NPI Setup Checklist built in pure HTML, CSS, and JavaScript. It saves changes locally and syncs the shared checklist across team devices through Supabase realtime.
+A sleek, responsive NPI Setup Checklist built in pure HTML, CSS, and JavaScript. It saves changes locally and syncs the shared checklist to a private Google Sheet using Google sign-in.
 
 ---
 
@@ -54,22 +54,13 @@ git push -u origin main
 
 ---
 
-## 👥 Shared Team Sync (Supabase)
+## 👥 Shared Team Sync (Google Sheets)
 
-The live checklist uses Supabase as its shared backend. Additions, edits, status changes, and deletions sync across team devices in realtime.
+Follow [the Google Sheets setup guide](GOOGLE_SHEETS_SETUP.md) to create the spreadsheet, enable the Sheets API, and configure Google sign-in. Then click **Google Sheets** in the tracker and connect.
 
-### One-time Supabase setup
+Each edit adds a history row instead of replacing the full checklist. Failed uploads remain queued on the device. Connected tabs refresh every 30 seconds, and **Sync now** refreshes immediately. Each teammate needs Editor access to the spreadsheet and must connect their Google account.
 
-1. Open the Supabase SQL Editor for the project.
-2. Create a new query and paste the contents of [`supabase/schema.sql`](supabase/schema.sql).
-3. Click **Run**.
-4. Open the live tracker: `https://one-shortcuts.github.io/Tracker/`
-
-The SQL creates the shared state table, Row Level Security policies, and realtime publication. Team members do not need to configure sync settings in the tracker.
-
-### Security note
-
-The frontend uses a Supabase publishable key, which is intended for browser use. The included policies allow anyone with the tracker URL to read and edit the checklist. For a private team, add Supabase Authentication and restrict the policies to authenticated users. Never put a Supabase service-role key in the frontend.
+The updated website no longer reads from or writes to Supabase. The `supabase/` directory is retained only as a record of the previous backend. Nothing is deleted from that service. Existing browser storage keys and `data/tasks.json` are retained but are not automatically imported into Sheets.
 
 ---
 
@@ -80,4 +71,4 @@ The frontend uses a Supabase publishable key, which is intended for browser use.
 - **Search & Filters**: Filter by status, priority, assignee, or keyword search across tasks and descriptions.
 - **CSV Export**: 1-click download of the complete NPI checklist into an Excel/Sheets-compatible CSV file.
 - **Light & Dark Theme**: Automatically adapts or toggles with persistent preference.
-- **Lightweight Frontend**: Vanilla HTML5, CSS3, and JavaScript with Supabase realtime sync.
+- **Lightweight Frontend**: Vanilla HTML5, CSS3, and JavaScript with Google Sheets sync.
