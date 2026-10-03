@@ -1,8 +1,29 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
 const { Store, HEADERS, decode } = require('../js/google-sheets.js');
 const task = (id, title = id) => ({ id, title, status: 'Not Started', priority: 'Medium', description: '', assignee: '', dueDate: '', updatedAt: '2026-10-03T00:00:00Z' });
 const row = (t, revision, deleted = false) => [...HEADERS.slice(0, 8).map(k => t[k]), String(deleted), revision];
+
+test('default fetch uses the browser window as its receiver', async () => {
+  let calls = 0;
+  const browser = {};
+  browser.fetch = function () {
+    if (this !== browser) throw new TypeError('Illegal invocation');
+    calls++;
+    return Promise.resolve({ ok: true, json: async () => ({ values: [HEADERS] }) });
+  };
+  const context = vm.createContext({ window: browser, fetch: browser.fetch, AbortSignal });
+  vm.runInContext(fs.readFileSync(require.resolve('../js/google-sheets.js'), 'utf8'), context);
+  const store = new browser.TrackerSheets.Store({
+    spreadsheetId: 'sheet', storage: { getItem: () => null, setItem() {} }
+  });
+  store.token = 'token';
+  await store.sync();
+  assert.equal(calls, 1);
+  assert.equal(store.state.tasks.length, 0);
+});
 function fixture(rows = []) {
   const memory = new Map();
   const storage = { getItem: key => memory.get(key) || null, setItem: (key, value) => memory.set(key, value) };

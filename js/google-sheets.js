@@ -38,7 +38,7 @@
   }
 
   class Store {
-    constructor({ spreadsheetId, storage, fetcher = fetch, uuid = () => crypto.randomUUID() }) {
+    constructor({ spreadsheetId, storage, fetcher = (...args) => root.fetch(...args), uuid = () => crypto.randomUUID() }) {
       this.spreadsheetId = spreadsheetId;
       this.storage = storage;
       this.fetcher = fetcher;
