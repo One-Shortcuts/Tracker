@@ -1190,8 +1190,6 @@
 
       <div class="header-actions">
         <button class="btn btn-outline" id="openSyncBtn">Google Sheets</button>
-        <button class="btn btn-outline" id="refreshSyncBtn">Sync now</button>
-        <button class="btn btn-outline" id="shareTeamBtn" hidden>Share tracker</button>
         <span id="syncStatus" role="status" style="font-size: 0.8rem;">Google Sheets not connected</span>
 
         <!-- Export/Import Buttons -->
@@ -1635,8 +1633,6 @@
       render();
       if (teamEndpoint) {
         document.getElementById('openSyncBtn').hidden = true;
-        document.getElementById('shareTeamBtn').hidden = false;
-        document.getElementById('refreshSyncBtn').textContent = 'Retry sync';
         syncSheets(false);
       }
       setInterval(() => {
@@ -2289,17 +2285,7 @@
         }
       });
 
-      document.getElementById('shareTeamBtn').addEventListener('click', async () => {
-        const url = window.location.origin + window.location.pathname;
-        try {
-          await navigator.clipboard.writeText(url);
-          showToast('Tracker link copied. Anyone with the link can view and edit tasks.', 'success');
-        } catch (_) {
-          prompt('Share this tracker link. Anyone with it can view and edit tasks:', url);
-        }
-      });
       document.getElementById('openSyncBtn').addEventListener('click', openSyncModal);
-      document.getElementById('refreshSyncBtn').addEventListener('click', () => syncSheets(true));
       closeSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
       saveSyncBtn.addEventListener('click', saveSyncSettings);
       disconnectSyncBtn.addEventListener('click', disconnectSync);

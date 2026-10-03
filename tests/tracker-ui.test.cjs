@@ -69,7 +69,6 @@ test('team mode loads automatically and saves creates, edits and descriptions wi
   await vm.runInContext('sheetsStore.running', ctx);
   assert.equal(oauth(), undefined);
   assert.equal(elements.get('openSyncBtn').hidden, true);
-  assert.equal(elements.get('shareTeamBtn').hidden, false);
   elements.get('taskTitleInput').value = 'Automatic create';
   elements.get('taskStatusInput').value = 'Not Started';
   elements.get('taskPriorityInput').value = 'Medium';

@@ -33,7 +33,7 @@ Google's instructions: [deploying Apps Script Web apps](https://developers.googl
 - Edits made during another save are sent automatically afterward.
 - Shared changes refresh every 30 seconds and when you return to the tab.
 - Failed uploads stay queued on the device and retry while the tab is open, visible, and connected. They also retry when internet access returns. Keep browser storage enabled and do not clear it while changes are pending.
-- **Share tracker** copies the website link. **Retry sync** is available for troubleshooting but is not required for ordinary saves.
+- Share the website URL directly with teammates. The header shows sync status; saving and retries run automatically.
 - Every revision stays in **TaskHistory**. Concurrent saves use a server lock, and repeated requests are deduplicated by revision ID. If two people edit the same task, the last synced revision determines the current task; older versions remain in the history.
 
 Use the website for task edits. Do not sort or remove TaskHistory rows, because row order identifies the latest revision. History is in the same Sheet, so keep independent exports/backups as well.
