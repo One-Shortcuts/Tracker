@@ -56,6 +56,8 @@ git push -u origin main
 
 ## 👥 Shared Team Sync (Google Sheets)
 
+For automatic saving and access without Google sign-in, follow [the team sharing setup](TEAM_SHARING_SETUP.md). The prepared Apps Script runs as the Sheet owner; anyone with the tracker link can read and edit tasks after its deployment URL is configured.
+
 Follow [the Google Sheets setup guide](GOOGLE_SHEETS_SETUP.md) to create the spreadsheet, enable the Sheets API, and configure Google sign-in. Then click **Google Sheets** in the tracker and connect.
 
 Each edit adds a history row instead of replacing the full checklist. Failed uploads remain queued on the device. Connected tabs refresh every 30 seconds, and **Sync now** refreshes immediately. Each teammate needs Editor access to the spreadsheet and must connect their Google account.

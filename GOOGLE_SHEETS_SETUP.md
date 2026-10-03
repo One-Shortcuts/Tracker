@@ -1,5 +1,7 @@
 # Connect the tracker to Google Sheets
 
+For the new **anyone-with-the-link, no-sign-in** mode, use [the team sharing setup](TEAM_SHARING_SETUP.md). The instructions below describe the existing per-user Google sign-in mode, which remains active until a team endpoint is configured.
+
 The tracker keeps its existing website, table, Kanban board, task editor, and CSV export. Google Sheets replaces Supabase. Each teammate signs in to Google from the tracker; the spreadsheet stays private and must be shared with them as an Editor.
 
 ## 1. Create the spreadsheet

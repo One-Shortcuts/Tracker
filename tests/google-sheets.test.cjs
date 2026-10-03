@@ -91,13 +91,14 @@ test('another task edited remotely is preserved when an offline change syncs', a
   assert.deepEqual(store.state.tasks.map(t => t.title), ['local', 'remote']);
 });
 
-test('edits made during upload remain pending and survive refresh', async () => {
+test('edits made during upload save automatically in the same sync cycle', async () => {
   const { store, api, make } = fixture();
   store.edit([task('a')]);
   api.duringWrite = () => store.edit([task('a', 'newer')]);
   await store.sync();
   assert.equal(store.state.tasks[0].title, 'newer');
-  assert.equal(store.state.pending.length, 1);
+  assert.equal(store.state.pending.length, 0);
+  assert.equal(api.posts, 2);
   const reopened = make();
   await reopened.sync();
   assert.equal(reopened.state.pending.length, 0);

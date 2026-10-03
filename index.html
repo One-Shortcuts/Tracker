@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    [hidden] { display: none !important; }
     :root {
       --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --bg-body: #f8fafc;
@@ -1190,6 +1191,7 @@
       <div class="header-actions">
         <button class="btn btn-outline" id="openSyncBtn">Google Sheets</button>
         <button class="btn btn-outline" id="refreshSyncBtn">Sync now</button>
+        <button class="btn btn-outline" id="shareTeamBtn" hidden>Share tracker</button>
         <span id="syncStatus" role="status" style="font-size: 0.8rem;">Google Sheets not connected</span>
 
         <!-- Export/Import Buttons -->
@@ -1467,6 +1469,8 @@
   </div>
 
   <script src="js/google-sheets.js"></script>
+  <script src="js/team-config.js"></script>
+  <script src="js/team-sync.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     /* ==========================================================================
@@ -1475,6 +1479,7 @@
     const GOOGLE_CONFIG_KEY = 'npi_google_sheets_config_v1';
     const DEFAULT_SPREADSHEET_ID = '1SyJ5-TLBAC-lIKfJvBVxkzKoHNltD-DilKiYvsmWMRM';
     const DEFAULT_GOOGLE_CLIENT_ID = '316499487482-m4h8t1bs5bc3f6m07sj608omc4evj6on.apps.googleusercontent.com';
+    const teamEndpoint = window.TRACKER_TEAM_CONFIG?.endpoint || '';
     let sheetsConfig = {};
     let sheetsStore = null;
     let connecting = false;
@@ -1606,7 +1611,10 @@
     }
 
     function loadSheetStore(config) {
-      sheetsStore = new TrackerSheets.Store({ spreadsheetId: config.spreadsheetId, storage: sheetStorage });
+      const options = { spreadsheetId: config.spreadsheetId, storage: sheetStorage };
+      sheetsStore = teamEndpoint
+        ? new TrackerTeam.TeamStore({ ...options, endpoint: teamEndpoint })
+        : new TrackerSheets.Store(options);
       tasks = structuredClone(sheetsStore.state.tasks);
     }
 
@@ -1614,23 +1622,35 @@
       loadTheme();
       setupEventListeners();
       try {
-        sheetsConfig = JSON.parse(getStoredValue(GOOGLE_CONFIG_KEY) || '{}');
+        sheetsConfig = teamEndpoint
+          ? { spreadsheetId: DEFAULT_SPREADSHEET_ID }
+          : JSON.parse(getStoredValue(GOOGLE_CONFIG_KEY) || '{}');
         if (sheetsConfig.spreadsheetId) {
           loadSheetStore(sheetsConfig);
-          setSyncStatus('Connect Google to sync' + (sheetsStore.state.pending.length ? ' — pending changes on this device' : ''));
+          setSyncStatus(teamEndpoint ? 'Loading shared checklist…' : 'Connect Google to sync' + (sheetsStore.state.pending.length ? ' — pending changes on this device' : ''));
         }
       } catch (error) {
         setSyncStatus(error.message);
       }
       render();
+      if (teamEndpoint) {
+        document.getElementById('openSyncBtn').hidden = true;
+        document.getElementById('shareTeamBtn').hidden = false;
+        document.getElementById('refreshSyncBtn').textContent = 'Retry sync';
+        syncSheets(false);
+      }
       setInterval(() => {
         if (!document.hidden && sheetsStore?.token) syncSheets(false);
       }, 30000);
       window.addEventListener('online', () => { if (sheetsStore?.token) syncSheets(false); });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && sheetsStore?.token) syncSheets(false);
+      });
     }
 
     function requireSheet() {
       if (sheetsStore) return true;
+      if (teamEndpoint) { showToast('Team connection is unavailable. Reload the tracker to retry.', 'error'); return false; }
       openSyncModal();
       showToast('Connect a Google Sheet before adding tasks.', 'info');
       return false;
@@ -1658,7 +1678,7 @@
     async function syncSheets(feedback = true) {
       const store = sheetsStore;
       if (!store?.token) {
-        if (feedback) openSyncModal();
+        if (feedback && !teamEndpoint) openSyncModal();
         return;
       }
       try {
@@ -1667,7 +1687,7 @@
         if (store !== sheetsStore) return;
         tasks = structuredClone(store.state.tasks);
         render();
-        setSyncStatus(store.state.pending.length ? 'Changes pending — sync again to finish' : 'Saved to Google Sheets');
+        setSyncStatus(store.state.pending.length ? 'Changes queued — automatic sync pending' : 'Saved to Google Sheets');
       } catch (error) {
         if (store !== sheetsStore) return;
         setSyncStatus(error.message);
@@ -2269,6 +2289,15 @@
         }
       });
 
+      document.getElementById('shareTeamBtn').addEventListener('click', async () => {
+        const url = window.location.origin + window.location.pathname;
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast('Tracker link copied. Anyone with the link can view and edit tasks.', 'success');
+        } catch (_) {
+          prompt('Share this tracker link. Anyone with it can view and edit tasks:', url);
+        }
+      });
       document.getElementById('openSyncBtn').addEventListener('click', openSyncModal);
       document.getElementById('refreshSyncBtn').addEventListener('click', () => syncSheets(true));
       closeSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');

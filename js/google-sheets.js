@@ -103,8 +103,15 @@
     }
 
     sync() {
-      if (!this.running) this.running = this.performSync().finally(() => { this.running = null; });
+      if (!this.running) this.running = this.drainPending().finally(() => { this.running = null; });
       return this.running;
+    }
+
+    async drainPending() {
+      do {
+        await this.performSync();
+      } while (this.state.pending.length && this.token);
+      return this.state;
     }
 
     async performSync() {
@@ -121,6 +128,9 @@
           method: 'POST', body: JSON.stringify({ values })
         });
         remote = await this.read();
+        if (batch.some(event => !remote.revisions.has(event.revision))) {
+          throw new Error('Google has not confirmed the saved changes yet. They remain queued for automatic retry.');
+        }
       }
       // Use the current outbox: edits may have happened during the network calls.
       const pending = this.state.pending.filter(event => !remote.revisions.has(event.revision));
